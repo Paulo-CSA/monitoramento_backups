@@ -433,6 +433,45 @@ function extractForwardedDate(body: string): string | null {
   return null;
 }
 
+// Helper to search the entire document text for the word "Date" and extract/parse its value
+function extractDateFromAnyContent(text: string): string | null {
+  if (!text) return null;
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    // Case-insensitive search for "Date" or "Date:"
+    const match = line.match(/(?:Date)\s*[:\-]?\s*([^\r\n]+)/i);
+    if (match && match[1]) {
+      let candidate = match[1].trim();
+      
+      // Clean anything after '<' or '(' to ignore email/name postfixes
+      const angleBracketIdx = candidate.indexOf("<");
+      if (angleBracketIdx !== -1) {
+        candidate = candidate.substring(0, angleBracketIdx).trim();
+      }
+      const parenIdx = candidate.indexOf("(");
+      if (parenIdx !== -1) {
+        candidate = candidate.substring(0, parenIdx).trim();
+      }
+      
+      const parsed = parseDateStringToIso(candidate);
+      if (parsed) {
+        try {
+          const d = new Date(parsed);
+          // Set to 12:00:00 UTC to ensure that timezone shifts do not move the date to another day
+          const utcYear = d.getFullYear();
+          const utcMonth = d.getMonth();
+          const utcDay = d.getDate();
+          const safeDate = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+          return safeDate.toISOString();
+        } catch (e) {
+          return parsed;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // Local regex backup parsing fallback (highly advanced & safe)
 function parseEmailLocally(subject: string, body: string): any {
   // Decode subject if QP-encoded
@@ -1285,6 +1324,33 @@ app.post("/api/uploads", async (req, res) => {
     let backupsExtracted = 0;
     let backupIds: string[] = [];
     let fileExt = fileType || path.extname(fileName).toLowerCase().replace(".", "");
+    
+    // Pre-extract the email date by searching the file text for the word "Date"
+    let detectedEmailDate: string | null = null;
+    try {
+      if (fileExt === "pdf" || fileName.endsWith(".pdf")) {
+        const pdfData = await pdf(fileBuffer);
+        detectedEmailDate = extractDateFromAnyContent(pdfData.text || "");
+      } else if (fileExt === "msg" || fileName.endsWith(".msg")) {
+        const isBinaryMsg = fileBuffer.length >= 4 && 
+                            fileBuffer[0] === 0xD0 && 
+                            fileBuffer[1] === 0xCF && 
+                            fileBuffer[2] === 0x11 && 
+                            fileBuffer[3] === 0xE0;
+        if (isBinaryMsg) {
+          const msgReader = new MsgReader(fileBuffer);
+          const fileData = msgReader.getFileData();
+          const combinedText = (fileData.headers || "") + "\n" + (fileData.body || "") + "\n" + (fileData.html || "");
+          detectedEmailDate = extractDateFromAnyContent(combinedText);
+        } else {
+          detectedEmailDate = extractDateFromAnyContent(fileBuffer.toString("utf-8"));
+        }
+      } else {
+        detectedEmailDate = extractDateFromAnyContent(fileBuffer.toString("utf-8"));
+      }
+    } catch (err) {
+      console.error("Error doing pre-extraction of email date:", err);
+    }
     
     // 2. Parse depending on format
     if (fileExt === "pdf" || fileName.endsWith(".pdf")) {
