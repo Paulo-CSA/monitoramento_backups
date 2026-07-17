@@ -504,11 +504,96 @@ export default function App() {
 
       <main className="max-w-[1440px] mx-auto px-6 mt-8 flex flex-col gap-6 w-full">
         
-        {/* TOP ROW: VISUALIZATIONS, METRICS & INGESTION */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full">
+        {/* TOP ROW: VISUALIZATIONS, METRICS, INGESTION & ARCHIVE */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch w-full">
           
-          {/* KPI METRIC CARDS GRID */}
-          <div className="lg:col-span-4 grid grid-cols-2 gap-4 order-2 lg:order-2">
+          {/* VISUAL CHART: DONUT RADIAL DISTRIB (ENRICHED & ENLARGED) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 lg:col-span-4 flex flex-col justify-between h-full order-1 lg:order-1 min-h-[350px]">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Activity className="h-4 w-4 text-indigo-400" />
+                Estado dos Backups
+              </h3>
+              <span className="text-[10px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono">
+                Cluster Veritas
+              </span>
+            </div>
+            
+            <div className="flex flex-col items-center justify-center gap-4 py-4 w-full">
+              {/* SVG Ring Graph - Enlarged & Enhanced */}
+              <div className="relative flex items-center justify-center group">
+                <svg className="w-40 h-40 transform -rotate-90">
+                  {/* Background Circle */}
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="68"
+                    className="stroke-slate-850"
+                    strokeWidth="11"
+                    fill="transparent"
+                  />
+                  {/* Success ring segment with drop shadow effect */}
+                  {totalCount > 0 && (
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="68"
+                      className="stroke-indigo-500 transition-all duration-1000"
+                      strokeWidth="11"
+                      fill="transparent"
+                      strokeDasharray={`${2 * Math.PI * 68}`}
+                      strokeDashoffset={`${2 * Math.PI * 68 * (1 - successCount / totalCount)}`}
+                      strokeLinecap="round"
+                    />
+                  )}
+                </svg>
+                {/* Text in the middle - Beautiful, enlarged & high contrast */}
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="text-4xl font-black text-white font-mono tracking-tighter flex items-baseline">
+                    {successRate}<span className="text-xl font-bold text-indigo-400">%</span>
+                  </span>
+                  <span className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-widest mt-1">Sucesso</span>
+                </div>
+              </div>
+
+              {/* Legends with detailed colored badges */}
+              <div className="flex flex-wrap items-center justify-center gap-2.5 w-full border-t border-slate-800/60 pt-3 text-[10px]">
+                <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/15 px-2.5 py-0.5 rounded-full text-emerald-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="font-mono font-bold">{successCount} OK</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/15 px-2.5 py-0.5 rounded-full text-rose-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span className="font-mono font-bold">{failureCount} Erros</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/15 px-2.5 py-0.5 rounded-full text-amber-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span className="font-mono font-bold">{pendingCount} Pend.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Enriched Cluster Information Grid - No empty space! */}
+            <div className="grid grid-cols-2 gap-2.5 border-t border-slate-800/80 pt-3 text-[10px] font-mono">
+              <div className="bg-slate-950/40 border border-slate-850 p-2 rounded-xl flex items-center gap-2">
+                <Database className="h-4 w-4 text-indigo-400 shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-slate-500 block text-[8px] uppercase tracking-wider font-bold">Volume Total</span>
+                  <span className="text-white font-bold block truncate">{formattedTotalVolume}</span>
+                </div>
+              </div>
+              <div className="bg-slate-950/40 border border-slate-850 p-2 rounded-xl flex items-center gap-2">
+                <Server className="h-4 w-4 text-indigo-400 shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-slate-500 block text-[8px] uppercase tracking-wider font-bold">Total Jobs</span>
+                  <span className="text-white font-bold block truncate">{totalCount} Mapeados</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI METRIC CARDS GRID (Symmetric & responsive) */}
+          <div className="lg:col-span-4 grid grid-cols-2 gap-3.5 order-2 lg:order-2 h-full">
             
             {/* Total Active Backups Card */}
             <div 
@@ -516,14 +601,14 @@ export default function App() {
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "all" ? "bg-slate-800 border-indigo-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Sistemas</span>
-                <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sistemas Ativos</span>
+                <div className="w-7 h-7 rounded-full bg-slate-850 flex items-center justify-center">
                   <Server className="h-4 w-4 text-slate-300" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-4 flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold text-white font-mono">{totalCount}</span>
-                <span className="text-[10px] text-slate-500 font-medium">cadastrados</span>
+                <span className="text-[10px] text-slate-500 font-medium">monitorados</span>
               </div>
             </div>
 
@@ -534,23 +619,22 @@ export default function App() {
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Taxa de Sucesso</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Sucesso Geral</span>
                   <CheckCircle className="h-4 w-4 text-emerald-500" />
                 </div>
-                <div className="mt-1 flex items-baseline gap-1">
+                <div className="mt-2 flex items-baseline gap-1">
                   <span className="text-2xl font-extrabold text-white font-mono">{successRate}%</span>
-                  <span className="text-[9px] text-emerald-500 font-medium bg-emerald-500/10 px-1 py-0.2 rounded border border-emerald-500/20">{successCount} OK</span>
                 </div>
               </div>
               
               {/* Mini visual bar-chart representing success rate / progress */}
-              <div className="flex items-end gap-1 h-6 mt-1.5">
-                <div className="flex-1 bg-indigo-500/10 h-2 rounded-sm"></div>
+              <div className="flex items-end gap-1 h-5 mt-2">
+                <div className="flex-1 bg-indigo-500/10 h-1.5 rounded-sm"></div>
                 <div className="flex-1 bg-indigo-500/15 h-3 rounded-sm"></div>
-                <div className="flex-1 bg-indigo-500/20 h-2.5 rounded-sm"></div>
+                <div className="flex-1 bg-indigo-500/20 h-2 rounded-sm"></div>
                 <div className="flex-1 bg-indigo-500/30 h-4 rounded-sm"></div>
-                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 90 ? 'bg-indigo-500 h-5' : 'bg-indigo-500/60 h-4'}`}></div>
-                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 80 ? 'bg-indigo-500 h-4.5' : 'bg-indigo-500/60 h-3.5'}`}></div>
+                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 90 ? 'bg-indigo-500 h-4.5' : 'bg-indigo-500/60 h-3'}`}></div>
+                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 80 ? 'bg-indigo-500 h-4' : 'bg-indigo-500/60 h-2.5'}`}></div>
               </div>
             </div>
 
@@ -560,17 +644,15 @@ export default function App() {
               className={`p-4 rounded-2xl border transition cursor-pointer hover:bg-rose-500/15 ${statusFilter === "failure" ? "bg-rose-950/40 border-rose-500/50" : "bg-rose-500/10 border-rose-500/20"}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs uppercase font-bold text-rose-500 tracking-wider">Falhas / Críticos</span>
+                <span className="text-[10px] uppercase font-bold text-rose-500 tracking-wider">Falhas Críticas</span>
                 <div className="w-7 h-7 rounded-full bg-rose-500/20 flex items-center justify-center">
                   <XCircle className="h-4 w-4 text-rose-500" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-2xl font-extrabold text-white font-mono">{failureCount}</span>
-                {failureCount > 0 ? (
-                  <span className="text-[8px] uppercase font-bold tracking-wider text-rose-400 bg-rose-500/15 border border-rose-500/25 px-1 py-0.2 rounded animate-pulse">Ação</span>
-                ) : (
-                  <span className="text-[10px] text-slate-400">Seguro</span>
+                {failureCount > 0 && (
+                  <span className="text-[8px] uppercase font-extrabold tracking-wider text-rose-400 bg-rose-500/15 border border-rose-500/25 px-1.5 py-0.5 rounded animate-pulse">Ação</span>
                 )}
               </div>
             </div>
@@ -581,219 +663,195 @@ export default function App() {
               className={`p-4 rounded-2xl border transition cursor-pointer hover:bg-amber-500/15 ${statusFilter === "pending" ? "bg-amber-950/40 border-amber-500/50" : "bg-amber-500/10 border-amber-500/20"}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs uppercase font-bold text-amber-500 tracking-wider">Pendentes</span>
+                <span className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">Pendentes</span>
                 <div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center">
                   <Clock className="h-4 w-4 text-amber-500 animate-spin-slow" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-2xl font-extrabold text-white font-mono">{pendingCount}</span>
-                <span className="text-[10px] text-slate-400">Monitorados</span>
               </div>
             </div>
 
           </div>
 
-          {/* VISUAL CHART: DONUT RADIAL DISTRIB */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:col-span-4 flex flex-col justify-between h-full order-1 lg:order-1">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
-              <Activity className="h-4 w-4 text-indigo-400" />
-              Distribuição do Estado dos Backups
-            </h3>
-            
-            <div className="flex items-center justify-around gap-4 py-1">
-              {/* SVG Ring Graph */}
-              <div className="relative flex items-center justify-center">
-                <svg className="w-20 h-20 transform -rotate-90">
-                  {/* Background Circle */}
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="32"
-                    className="stroke-slate-800"
-                    strokeWidth="8"
-                    fill="transparent"
-                  />
-                  {/* Success ring segment */}
-                  {totalCount > 0 && (
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="32"
-                      className="stroke-indigo-500 transition-all duration-1000"
-                      strokeWidth="8"
-                      fill="transparent"
-                      strokeDasharray={`${2 * Math.PI * 32}`}
-                      strokeDashoffset={`${2 * Math.PI * 32 * (1 - successCount / totalCount)}`}
-                      strokeLinecap="round"
-                    />
-                  )}
-                </svg>
-                {/* Text in the middle */}
-                <div className="absolute flex flex-col items-center">
-                  <span className="text-lg font-extrabold text-white font-mono">{successRate}%</span>
-                  <span className="text-[9px] text-slate-400 uppercase tracking-wider">Sucesso</span>
-                </div>
-              </div>
-
-              {/* Legends with detail and colors */}
-              <div className="flex flex-col gap-1.5 text-[11px]">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-slate-300 font-medium">Sucesso ({successCount})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-rose-500" />
-                  <span className="text-slate-300 font-medium">Falha ({failureCount})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-slate-300 font-medium">Pendente ({pendingCount})</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* CARREGADOR DE ARQUIVOS (DRAG & DROP FILE UPLOAD ENGINE) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 relative overflow-hidden lg:col-span-4 flex flex-col justify-between h-full order-3 lg:order-3">
-            
-            {/* Ambient visual badge */}
-            <div className="absolute top-0 right-0 p-2">
-              <span className="text-[8px] font-mono bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase">
-                Importador Veritas
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 mb-1">
-              <FileUp className="h-4 w-4 text-indigo-400" />
-              <h3 className="text-sm font-semibold text-white">Importar Relatório de Backup</h3>
-            </div>
-            <p className="text-[11px] text-slate-400 mb-2">
-              Envie arquivos nos formatos <strong>.msg</strong>, <strong>.eml</strong>, <strong>.pdf</strong> ou <strong>.txt</strong> baixados diretamente do seu e-mail ou servidor Veritas.
-            </p>
-
-            {/* Drag & Drop Area */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDragging(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file) handleFileUpload(file);
-              }}
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".msg,.eml,.pdf,.txt,text/plain,application/pdf";
-                input.onchange = (e) => {
-                  const file = (e.target as HTMLInputElement).files?.[0];
-                  if (file) handleFileUpload(file);
-                };
-                input.click();
-              }}
-              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition duration-200 flex flex-col items-center justify-center gap-2 group relative overflow-hidden ${
-                isDragging
-                  ? "border-indigo-500 bg-indigo-500/10"
-                  : "border-slate-800 hover:border-indigo-500/50 hover:bg-slate-950/40"
-              }`}
-            >
-              {isUploading ? (
-                <div className="py-2 space-y-2 flex flex-col items-center">
-                  <RefreshCw className="h-6 w-6 text-indigo-400 animate-spin" />
-                  <div className="space-y-0.5">
-                    <p className="text-[11px] font-bold text-white">Processando com Inteligência Artificial...</p>
-                    <p className="text-[9px] text-slate-500">Lendo tabelas e mapeando jobs de backup</p>
-                  </div>
-                  {/* Subtle scanning bar animation */}
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-indigo-500/20">
-                    <div className="h-full bg-indigo-500 animate-[pulse_1s_infinite]" />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center group-hover:scale-105 transition duration-150 border border-slate-800 group-hover:border-indigo-500/30">
-                    <Upload className="h-4.5 w-4.5 text-slate-400 group-hover:text-indigo-400" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[11px] font-semibold text-slate-200 group-hover:text-white transition">
-                      Arraste seu arquivo de backup aqui ou clique para buscar
-                    </p>
-                    <p className="text-[9px] text-slate-500">
-                      Suporta arquivos de emails exportados ou PDFs de relatórios consolidados
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Error Display */}
-            {uploadError && (
-              <div className="mt-2 p-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] rounded-lg flex items-start gap-1.5">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <p>{uploadError}</p>
+          {/* COMBINED CARD: ARQUIVOS & IMPORTAÇÃO DE LOGS (DRAG & DROP + LIST LOGS) */}
+          <div 
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleFileUpload(file);
+            }}
+            className={`bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between h-full order-3 lg:order-3 lg:col-span-4 min-h-[350px] transition duration-200 relative ${
+              isDragging ? "border-indigo-500 bg-indigo-500/5 ring-2 ring-indigo-500/20" : "border-slate-800"
+            }`}
+          >
+            {/* Drag and Drop visual overlay state */}
+            {isDragging && (
+              <div className="absolute inset-0 bg-indigo-950/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 z-10 p-4 border-2 border-dashed border-indigo-500 m-1">
+                <Upload className="h-8 w-8 text-indigo-400 animate-bounce" />
+                <p className="text-xs font-bold text-white">Solte o arquivo para carregar!</p>
+                <p className="text-[10px] text-slate-400">Formatos aceitos: .msg, .eml, .pdf, .txt</p>
               </div>
             )}
 
-            {/* Simulated Parsing Result Drawer Alert */}
-            <AnimatePresence>
-              {parseResult && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  className="mt-2 p-3 rounded-xl border bg-slate-950 border-indigo-500/30 text-[11px] space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-indigo-400 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" /> IA: Relatório Analisado com Sucesso!
-                    </span>
-                    <button 
-                      onClick={() => setParseResult(null)} 
-                      className="text-slate-400 hover:text-slate-200 text-sm font-bold"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 font-mono border-t border-slate-800/80 pt-1.5 pb-1 text-[10px]">
-                    <div>
-                      <span className="text-slate-500 block">SISTEMA EXTRAÍDO:</span>
-                      <span className="text-slate-200 font-semibold block truncate" title={parseResult.serverName}>{parseResult.serverName}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block">TECNOLOGIA:</span>
-                      <span className="text-slate-200 font-semibold block">{parseResult.systemType}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block">STATUS CONSOLIDADO:</span>
-                      <span className={`font-bold block ${
-                        parseResult.status === "success" ? "text-emerald-400" :
-                        parseResult.status === "failure" ? "text-rose-400" : "text-amber-400"
-                      }`}>{parseResult.status.toUpperCase()}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block">TAMANHO EXTRAÍDO:</span>
-                      <span className="text-slate-200 font-semibold block">{parseResult.size || "Não detalhado"}</span>
-                    </div>
-                  </div>
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center gap-1.5">
+                  <Database className="h-4 w-4 text-indigo-400" />
+                  <h3 className="text-sm font-semibold text-white">Arquivos de Logs</h3>
+                </div>
+                {uploads.length > 0 && (
+                  <button
+                    onClick={handleResetUploads}
+                    className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-950/45 rounded transition cursor-pointer"
+                    title="Limpar todos os uploads"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              
+              <p className="text-[10px] text-slate-400 leading-normal mb-3">
+                Histórico de importações integradas e sincronizadas com IA.
+              </p>
 
-                  {parseResult.count && parseResult.count > 0 && (
-                    <div className="border-t border-slate-800/80 pt-1.5 flex justify-between items-center text-[9px] text-slate-400 font-mono">
-                      <span>JOBS DE BACKUPS DETECTADOS E MAPEADOS:</span>
-                      <span className="bg-indigo-550/15 text-indigo-400 border border-indigo-550/25 px-1.5 py-0.2 rounded font-bold">
-                        {parseResult.count} Jobs
-                      </span>
-                    </div>
-                  )}
+              {/* ACTION: Prominent upload button inside the card */}
+              <button
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = ".msg,.eml,.pdf,.txt,text/plain,application/pdf";
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) handleFileUpload(file);
+                  };
+                  input.click();
+                }}
+                disabled={isUploading}
+                className="w-full mb-3 py-2 px-3 bg-indigo-600 hover:bg-indigo-550 disabled:bg-indigo-950/80 text-white font-semibold text-[11px] rounded-xl flex items-center justify-center gap-2 transition shadow-md shadow-indigo-600/15 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+              >
+                {isUploading ? (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-white" />
+                    <span>Lendo com IA Veritas...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="h-3.5 w-3.5 text-indigo-200" />
+                    <span>Importar Relatório Veritas</span>
+                  </>
+                )}
+              </button>
 
-                  <p className="text-[9px] text-slate-500 italic">Os novos registros foram inseridos no topo da lista abaixo.</p>
-                </motion.div>
+              {/* Error Display inside the card */}
+              {uploadError && (
+                <div className="mb-2.5 p-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] rounded-xl flex items-start gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <p className="leading-tight">{uploadError}</p>
+                </div>
               )}
-            </AnimatePresence>
 
+              {/* Parsing success message */}
+              <AnimatePresence>
+                {parseResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-2.5 p-2.5 rounded-xl border bg-slate-950 border-indigo-500/35 text-[10px] space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-indigo-400 flex items-center gap-0.5">
+                        <Sparkles className="h-3 w-3 text-indigo-400 animate-pulse" /> IA: Sucesso!
+                      </span>
+                      <button 
+                        onClick={() => setParseResult(null)} 
+                        className="text-slate-400 hover:text-slate-200 text-xs font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 font-mono border-t border-slate-800/80 pt-1 text-[9px]">
+                      <div>
+                        <span className="text-slate-500 block text-[8px]">SISTEMA:</span>
+                        <span className="text-slate-200 font-semibold block truncate" title={parseResult.serverName}>{parseResult.serverName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[8px]">STATUS:</span>
+                        <span className={`font-bold block ${
+                          parseResult.status === "success" ? "text-emerald-400" :
+                          parseResult.status === "failure" ? "text-rose-400" : "text-amber-400"
+                        }`}>{parseResult.status.toUpperCase()}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* List of Files - Elegant, compact & scrollable */}
+              <div className="space-y-1.5 max-h-[145px] overflow-y-auto pr-1 custom-scrollbar">
+                {uploads.length === 0 ? (
+                  <div className="text-center py-7 bg-slate-950/40 rounded-xl border border-dashed border-slate-800/80 p-3">
+                    <FileText className="h-6 w-6 text-slate-700 mx-auto stroke-[1.5]" />
+                    <p className="text-[10px] text-slate-400 font-medium mt-1">Nenhum log enviado</p>
+                    <p className="text-[9px] text-slate-600 mt-0.5">Arraste ou clique em Importar acima</p>
+                  </div>
+                ) : (
+                  uploads.map((file) => {
+                    const sizeInKB = (file.fileSize / 1024).toFixed(1);
+                    return (
+                      <div
+                        key={file.id}
+                        className="bg-slate-950/60 hover:bg-slate-950 border border-slate-850 hover:border-slate-800 rounded-xl p-2 transition group flex flex-col gap-1"
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <FileText className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                          <span className="text-[11px] font-mono font-medium text-slate-200 truncate select-all flex-1" title={file.fileName}>
+                            {file.fileName}
+                          </span>
+                          <span className="text-[9px] text-slate-500 font-mono shrink-0">
+                            {sizeInKB} KB
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-900/60 pt-1 mt-0.5">
+                          <span className="text-[9px] font-semibold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
+                            {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job" : "Jobs"}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={`/api/uploads/download/${file.id}`}
+                              className="w-5.5 h-5.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 flex items-center justify-center transition"
+                              title="Baixar arquivo original"
+                            >
+                              <Download className="h-2.5 w-2.5" />
+                            </a>
+                            <button
+                              onClick={(e) => handleDeleteUpload(file.id, e)}
+                              className="w-5.5 h-5.5 rounded bg-slate-900 hover:bg-rose-950/30 text-slate-400 hover:text-rose-400 border border-slate-800 flex items-center justify-center transition cursor-pointer"
+                              title="Excluir arquivo"
+                            >
+                              <Trash2 className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 text-[9px] text-slate-500 border-t border-slate-800/80 pt-1.5 mt-2">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span className="truncate">Banco encriptado e seguro contra violações.</span>
+            </div>
           </div>
 
         </div>
@@ -801,134 +859,6 @@ export default function App() {
         {/* BOTTOM SECTION: MAIN LOGS & LIVE LIST */}
         <section className="flex flex-col gap-6 w-full">
 
-          {/* GERENCIADOR DE ARQUIVOS ENVIADOS (FILE ARCHIVE & AUDIT ENGINE) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <Database className="h-4 w-4 text-indigo-400" />
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Gerenciador de Arquivos Enviados</h3>
-                  <p className="text-[11px] text-slate-500">Histórico de importações organizadas cronologicamente</p>
-                </div>
-              </div>
-              
-              {uploads.length > 0 && (
-                <button
-                  onClick={handleResetUploads}
-                  className="px-3 py-1 border border-rose-500/30 hover:border-rose-500 text-rose-400 hover:text-white bg-rose-500/5 hover:bg-rose-600 transition rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span>Limpar Todos os Uploads</span>
-                </button>
-              )}
-            </div>
-
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Todos os arquivos analisados pela inteligência artificial ficam armazenados com segurança no servidor. Você pode baixar os arquivos originais a qualquer momento ou excluí-los para remover os respectivos registros de logs do dashboard.
-            </p>
-
-            {/* List of Files */}
-            <div className="space-y-2.5">
-              {uploads.length === 0 ? (
-                <div className="text-center py-6 bg-slate-950/40 rounded-xl border border-dashed border-slate-800/80 p-4">
-                  <FileText className="h-8 w-8 text-slate-700 mx-auto stroke-[1.5]" />
-                  <p className="text-xs text-slate-400 font-semibold mt-2">Nenhum arquivo enviado até o momento</p>
-                  <p className="text-[10px] text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
-                    Arraste ou carregue um arquivo no importador acima para visualizar o histórico de importações nesta seção.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
-                  {uploads.map((file) => {
-                    const formattedDate = new Date(file.uploadedAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit"
-                    });
-                    
-                    const sizeInKB = (file.fileSize / 1024).toFixed(1);
-                    const fileTypeUpper = file.fileType.toUpperCase();
-
-                    return (
-                      <div
-                        key={file.id}
-                        className="bg-slate-950/60 hover:bg-slate-950 border border-slate-800/60 hover:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition group"
-                      >
-                        <div className="flex items-start gap-3 min-w-0">
-                          {/* File type icon badge */}
-                          <div className={`w-9 h-9 rounded-lg flex flex-col items-center justify-center font-mono text-[9px] font-bold shrink-0 border ${
-                            file.fileType === "pdf"
-                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                              : file.fileType === "msg"
-                              ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                              : file.fileType === "eml"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                          }`}>
-                            <FileText className="h-4 w-4 mb-0.5" />
-                            <span>{fileTypeUpper}</span>
-                          </div>
-
-                          <div className="min-w-0 text-left">
-                            <p className="text-xs font-semibold text-slate-200 group-hover:text-white truncate font-mono select-all">
-                              {file.fileName}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-slate-500 font-mono">
-                              <span>Tamanho: {sizeInKB} KB</span>
-                              <span className="text-slate-700">•</span>
-                              <span>Enviado em: {formattedDate}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 border-slate-850 pt-2 sm:pt-0">
-                          {/* Extracted Backups count info */}
-                          <span className={`text-[10px] font-semibold font-mono px-2 py-0.5 rounded-full ${
-                            file.backupsExtracted > 0
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                          }`}>
-                            {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job Mapeado" : "Jobs Mapeados"}
-                          </span>
-
-                          <div className="flex items-center gap-2">
-                            {/* Download file button */}
-                            <a
-                              href={`/api/uploads/download/${file.id}`}
-                              className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 flex items-center justify-center transition"
-                              title="Baixar arquivo original novamente"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                            </a>
-
-                            {/* Delete file button */}
-                            <button
-                              onClick={(e) => handleDeleteUpload(file.id, e)}
-                              className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-rose-950/25 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 flex items-center justify-center transition cursor-pointer"
-                              title="Excluir arquivo e seus backups associados"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 text-[10px] text-slate-500 border-t border-slate-800/80 pt-3.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-              <span>O banco de dados armazena os arquivos de logs de forma encriptada, assegurando a integridade e privacidade das informações industriais analisadas.</span>
-            </div>
-
-          </div>
-          
           {/* SEARCH, FILTERS & REGISTER ACTION ROW */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-4">
             
