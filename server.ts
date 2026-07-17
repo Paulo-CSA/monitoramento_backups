@@ -7,7 +7,15 @@ import dotenv from "dotenv";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import * as MsgReaderImport from "msgreader";
-const MsgReader = (MsgReaderImport as any).default || MsgReaderImport;
+// Robustly unwrap any nested default exports for MsgReader
+const getMsgReaderConstructor = () => {
+  let target = MsgReaderImport as any;
+  while (target && typeof target !== "function" && target.default) {
+    target = target.default;
+  }
+  return target;
+};
+const MsgReader = getMsgReaderConstructor();
 import * as pdfImport from "pdf-parse";
 const pdf = (pdfImport as any).default || pdfImport;
 
