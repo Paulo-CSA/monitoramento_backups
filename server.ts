@@ -410,7 +410,7 @@ function extractForwardedDate(body: string): string | null {
   const lines = cleanBody.split(/\r?\n/);
   
   for (const line of lines) {
-    const match = line.match(/(?:Date|Data|Sent|Enviado|Enviado em|Enviada em)[^\w\r\n]*[:\-]?\s*([^\r\n]+)/i);
+    const match = line.match(/(?:Date)[^\w\r\n]*[:\-]?\s*([^\r\n]+)/i);
     if (match && match[1]) {
       let candidate = match[1].trim();
       
