@@ -6,7 +6,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
-import MsgReader from "msgreader";
+import * as MsgReaderImport from "msgreader";
+const MsgReader = (MsgReaderImport as any).default || MsgReaderImport;
 import * as pdfImport from "pdf-parse";
 const pdf = (pdfImport as any).default || pdfImport;
 
