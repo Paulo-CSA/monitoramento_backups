@@ -223,6 +223,78 @@ function cleanHtmlText(html: string): string {
   return txt.replace(/\s+/g, " ").trim();
 }
 
+// Helper to parse date strings from backup reports into standard ISO strings
+function parseDateStringToIso(str: string | null | undefined): string {
+  if (!str || str === "Não detalhado" || str === "-") {
+    return new Date().toISOString();
+  }
+  
+  // Try native Date.parse
+  try {
+    const timestamp = Date.parse(str);
+    if (!isNaN(timestamp)) {
+      return new Date(timestamp).toISOString();
+    }
+  } catch (e) {}
+
+  // Match NetBackup format: "Jul 6, 2026 7:15:35 PM" or "Jul 06, 2026 19:15:35" or "06/07/2026 19:15:35"
+  const months: { [key: string]: number } = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+  };
+
+  const matchNetBackup = str.match(/([a-zA-Z]{3})\s+(\d+),\s+(\d{4})\s+(\d+):(\d+):(\d+)\s*(AM|PM)?/i);
+  if (matchNetBackup) {
+    const monthStr = matchNetBackup[1].toLowerCase().substring(0, 3);
+    const day = parseInt(matchNetBackup[2], 10);
+    const year = parseInt(matchNetBackup[3], 10);
+    let hours = parseInt(matchNetBackup[4], 10);
+    const minutes = parseInt(matchNetBackup[5], 10);
+    const seconds = parseInt(matchNetBackup[6], 10);
+    const ampm = matchNetBackup[7];
+
+    if (months[monthStr] !== undefined) {
+      if (ampm) {
+        if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
+        if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
+      }
+      try {
+        const d = new Date(year, months[monthStr], day, hours, minutes, seconds);
+        return d.toISOString();
+      } catch (e) {}
+    }
+  }
+
+  const matchBR = str.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (matchBR) {
+    const day = parseInt(matchBR[1], 10);
+    const month = parseInt(matchBR[2], 10) - 1;
+    const year = parseInt(matchBR[3], 10);
+    const hours = parseInt(matchBR[4], 10);
+    const minutes = parseInt(matchBR[5], 10);
+    const seconds = parseInt(matchBR[6], 10);
+    try {
+      const d = new Date(year, month, day, hours, minutes, seconds);
+      return d.toISOString();
+    } catch (e) {}
+  }
+
+  const matchISO = str.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (matchISO) {
+    const year = parseInt(matchISO[1], 10);
+    const month = parseInt(matchISO[2], 10) - 1;
+    const day = parseInt(matchISO[3], 10);
+    const hours = parseInt(matchISO[4], 10);
+    const minutes = parseInt(matchISO[5], 10);
+    const seconds = parseInt(matchISO[6], 10);
+    try {
+      const d = new Date(year, month, day, hours, minutes, seconds);
+      return d.toISOString();
+    } catch (e) {}
+  }
+
+  return new Date().toISOString();
+}
+
 // Local regex backup parsing fallback (highly advanced & safe)
 function parseEmailLocally(subject: string, body: string): any {
   // Decode subject if QP-encoded
@@ -733,7 +805,7 @@ app.get("/api/emails/templates", (req, res) => {
 });
 
 // Helper function to parse email using Gemini (or local regex fallback) and save to database
-async function parseAndSaveEmailContent(subject: string, body: string, uploadFileId: string | null = null): Promise<{ newBackups: any[], isAI: boolean }> {
+async function parseAndSaveEmailContent(subject: string, body: string, uploadFileId: string | null = null, receivedAtParam: string | null = null): Promise<{ newBackups: any[], isAI: boolean }> {
   // Decode subject if QP-encoded
   let decodedSubject = subject;
   if (subject.includes("=?") || subject.includes("=3D")) {
@@ -855,6 +927,18 @@ Para cada job ou servidor encontrado, extraia os seguintes campos:
     }];
   }
 
+  // Determine final receivedAt date (prioritize passed param, fallback to first valid job date, fallback to current time)
+  let finalReceivedAt = receivedAtParam;
+  if (!finalReceivedAt) {
+    const firstValidDateEntry = backupsList.find(b => b.startTime && b.startTime !== "Não detalhado" && b.startTime !== "-") ||
+                              backupsList.find(b => b.endTime && b.endTime !== "Não detalhado" && b.endTime !== "-");
+    if (firstValidDateEntry) {
+      finalReceivedAt = parseDateStringToIso(firstValidDateEntry.startTime || firstValidDateEntry.endTime);
+    } else {
+      finalReceivedAt = new Date().toISOString();
+    }
+  }
+
   // Map them into our full DB format
   const newBackups = backupsList.map((entry: any, index: number) => {
     const cName = entry.clientName || entry.serverName || "Servidor Desconhecido";
@@ -877,7 +961,7 @@ Para cada job ou servidor encontrado, extraia os seguintes campos:
       statusCode: sCode,
       status: statusVal,
       
-      receivedAt: new Date().toISOString(),
+      receivedAt: finalReceivedAt,
       subject: subject,
       errorDetails: entry.errorDetails || null,
       parsedWithAI: isAI,
@@ -1132,6 +1216,12 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
             parsedGemini = JSON.parse(response.text.trim());
           }
           
+          let commonReceivedAt = new Date().toISOString();
+          const firstValidJob = (parsedGemini.backups || []).find((b: any) => b.startTime && b.startTime !== "Não detalhado" && b.startTime !== "-");
+          if (firstValidJob) {
+            commonReceivedAt = parseDateStringToIso(firstValidJob.startTime);
+          }
+
           const backupsToInsert = (parsedGemini.backups || []).map((entry: any, index: number) => {
             const cName = entry.clientName || "Servidor Desconhecido";
             const pName = entry.policyName || "Backup Geral";
@@ -1152,7 +1242,7 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
               jobSize: jSize,
               statusCode: sCode,
               status: statusVal,
-              receivedAt: new Date().toISOString(),
+              receivedAt: commonReceivedAt,
               subject: `Relatório PDF: ${fileName}`,
               errorDetails: entry.errorDetails || null,
               parsedWithAI: true,
@@ -1197,7 +1287,21 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
         const sub = fileData.subject || `Relatório MSG: ${fileName}`;
         const bod = fileData.body || fileData.html || "";
         
-        const result = await parseAndSaveEmailContent(sub, bod, fileId);
+        let receivedAt: string | null = null;
+        if (fileData.headers) {
+          const dateMatch = fileData.headers.match(/^Date:\s*([^\r\n]+)/im);
+          if (dateMatch && dateMatch[1]) {
+            try { receivedAt = new Date(dateMatch[1]).toISOString(); } catch (e) {}
+          }
+        }
+        if (!receivedAt) {
+          const rawDate = fileData.clientSubmitTime || fileData.messageDeliveryTime || fileData.creationTime;
+          if (rawDate) {
+            try { receivedAt = new Date(rawDate).toISOString(); } catch (e) {}
+          }
+        }
+        
+        const result = await parseAndSaveEmailContent(sub, bod, fileId, receivedAt);
         backupsExtracted = result.newBackups.length;
         backupIds = result.newBackups.map((b: any) => b.id);
       } else {
@@ -1207,8 +1311,9 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
           const parsedEml = await simpleParser(fileBuffer);
           const sub = parsedEml.subject || `Relatório EML/MSG: ${fileName}`;
           const bod = parsedEml.text || parsedEml.textAsHtml || parsedEml.html || "";
+          const receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
           
-          const result = await parseAndSaveEmailContent(sub, bod as string, fileId);
+          const result = await parseAndSaveEmailContent(sub, bod as string, fileId, receivedAt);
           backupsExtracted = result.newBackups.length;
           backupIds = result.newBackups.map((b: any) => b.id);
         } catch (emlErr) {
@@ -1224,8 +1329,9 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
       const parsedEml = await simpleParser(fileBuffer);
       const sub = parsedEml.subject || `Relatório EML: ${fileName}`;
       const bod = parsedEml.text || parsedEml.textAsHtml || parsedEml.html || "";
+      const receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
       
-      const result = await parseAndSaveEmailContent(sub, bod as string, fileId);
+      const result = await parseAndSaveEmailContent(sub, bod as string, fileId, receivedAt);
       backupsExtracted = result.newBackups.length;
       backupIds = result.newBackups.map((b: any) => b.id);
     } else {
@@ -1236,14 +1342,23 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
       backupIds = result.newBackups.map((b: any) => b.id);
     }
     
-    // Save metadata entry to uploads.json
+    // Save metadata entry to uploads.json, using the extracted received date of the backup jobs
+    let fileReceivedAt = new Date().toISOString();
+    if (backupIds.length > 0) {
+      const backups = loadBackups();
+      const firstJob = backups.find((b: any) => backupIds.includes(b.id));
+      if (firstJob && firstJob.receivedAt) {
+        fileReceivedAt = firstJob.receivedAt;
+      }
+    }
+
     const uploads = loadUploads();
     const uploadEntry = {
       id: fileId,
       fileName: fileName,
       fileSize: fileBuffer.length,
       fileType: fileName.endsWith(".pdf") ? "pdf" : (fileName.endsWith(".msg") ? "msg" : (fileName.endsWith(".eml") ? "eml" : "txt")),
-      uploadedAt: new Date().toISOString(),
+      uploadedAt: fileReceivedAt,
       backupsExtracted: backupsExtracted,
       backupIds: backupIds
     };

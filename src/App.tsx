@@ -806,6 +806,13 @@ export default function App() {
                 ) : (
                   uploads.map((file) => {
                     const sizeInKB = (file.fileSize / 1024).toFixed(1);
+                    const formattedDate = new Date(file.uploadedAt).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    });
                     return (
                       <div
                         key={file.id}
@@ -820,6 +827,12 @@ export default function App() {
                             {sizeInKB} KB
                           </span>
                         </div>
+                        
+                        <div className="text-[8.5px] text-slate-500 font-mono flex items-center gap-1">
+                          <Clock className="h-2.5 w-2.5 text-indigo-500/75 shrink-0 animate-pulse" />
+                          <span>Recebido em: {formattedDate}</span>
+                        </div>
+
                         <div className="flex items-center justify-between border-t border-slate-900/60 pt-1 mt-0.5">
                           <span className="text-[9px] font-semibold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
                             {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job" : "Jobs"}
@@ -1138,7 +1151,7 @@ export default function App() {
                                         <span className="text-slate-300 font-mono block mt-0.5 select-all text-[11px] truncate" title={backup.subject}>{backup.subject}</span>
                                       </div>
                                       <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl text-xs">
-                                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Recebido no Webhook:</span>
+                                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Recebido por E-mail:</span>
                                         <span className="text-slate-300 font-mono block mt-0.5 text-[11px]">{new Date(backup.receivedAt).toLocaleString("pt-BR")}</span>
                                       </div>
                                       <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl text-xs">
