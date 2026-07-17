@@ -1,0 +1,6 @@
+{
+  "name": "Backup Manager Dashboard",
+  "description": "Visualizador gráfico e gerenciador de status de backups em tempo real, integrando reencaminhamento de e-mails com análise automática via Inteligência Artificial.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
