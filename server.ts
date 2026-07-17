@@ -1053,9 +1053,7 @@ app.post("/api/emails/forward", async (req, res) => {
 
   let receivedAtParam: string | null = null;
   if (dateParam) {
-    try {
-      receivedAtParam = new Date(dateParam).toISOString();
-    } catch (e) {}
+    receivedAtParam = parseDateStringToIso(dateParam);
   }
 
   try {
@@ -1404,7 +1402,28 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
     } else {
       // Plain text files
       const text = fileBuffer.toString("utf-8");
-      const result = await parseAndSaveEmailContent(`Relatório TXT: ${fileName}`, text, fileId);
+      
+      let txtSubject = `Relatório TXT: ${fileName}`;
+      let receivedAt: string | null = null;
+      
+      // Look for Subject and Date headers in the first 30 lines of the TXT file
+      const lines = text.split(/\r?\n/).slice(0, 30);
+      for (const line of lines) {
+        const subjectMatch = line.match(/^\s*Subject:\s*([^\r\n]+)/i);
+        if (subjectMatch && subjectMatch[1]) {
+          txtSubject = subjectMatch[1].trim();
+        }
+        const dateMatch = line.match(/^\s*(?:Date|Data|Sent|Enviado|Enviado em|Enviada em):\s*([^\r\n]+)/i);
+        if (dateMatch && dateMatch[1]) {
+          const candidate = dateMatch[1].trim();
+          const parsed = parseDateStringToIso(candidate);
+          if (parsed) {
+            receivedAt = parsed;
+          }
+        }
+      }
+      
+      const result = await parseAndSaveEmailContent(txtSubject, text, fileId, receivedAt);
       backupsExtracted = result.newBackups.length;
       backupIds = result.newBackups.map((b: any) => b.id);
     }

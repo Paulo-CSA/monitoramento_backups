@@ -44,6 +44,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failure" | "pending">("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
 
   // Email forward simulator form
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -170,6 +171,9 @@ export default function App() {
         method: "DELETE"
       });
       if (res.ok) {
+        if (selectedFileId === id) {
+          setSelectedFileId(null);
+        }
         await loadData(true);
         await loadUploads();
       } else {
@@ -192,6 +196,7 @@ export default function App() {
         method: "POST"
       });
       if (res.ok) {
+        setSelectedFileId(null);
         await loadData(true);
         await loadUploads();
         alert("Uploads redefinidos com sucesso!");
@@ -410,8 +415,10 @@ export default function App() {
     
     const bDate = b.receivedAt ? b.receivedAt.substring(0, 10) : "";
     const matchesDate = dateFilter === "all" || bDate === dateFilter;
+    
+    const matchesFile = !selectedFileId || b.uploadFileId === selectedFileId;
 
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesStatus && matchesDate && matchesFile;
   });
 
   // Calculate volume per technology (in GBs, roughly approximated for visual rendering)
@@ -816,11 +823,16 @@ export default function App() {
                     return (
                       <div
                         key={file.id}
-                        className="bg-slate-950/60 hover:bg-slate-950 border border-slate-850 hover:border-slate-800 rounded-xl p-2 transition group flex flex-col gap-1"
+                        onClick={() => setSelectedFileId(selectedFileId === file.id ? null : file.id)}
+                        className={`border rounded-xl p-2 transition group flex flex-col gap-1 cursor-pointer select-none ${
+                          selectedFileId === file.id
+                            ? "border-indigo-500 bg-indigo-950/80 shadow-[0_0_12px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/30 text-indigo-100"
+                            : "bg-slate-950/60 hover:bg-slate-950 border-slate-850 hover:border-slate-800 text-slate-300"
+                        }`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <FileText className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-                          <span className="text-[11px] font-mono font-medium text-slate-200 truncate select-all flex-1" title={file.fileName}>
+                          <FileText className={`h-3.5 w-3.5 shrink-0 ${selectedFileId === file.id ? "text-indigo-400" : "text-slate-400"}`} />
+                          <span className="text-[11px] font-mono font-medium truncate select-all flex-1 text-left" title={file.fileName}>
                             {file.fileName}
                           </span>
                           <span className="text-[9px] text-slate-500 font-mono shrink-0">
@@ -829,7 +841,7 @@ export default function App() {
                         </div>
                         
                         <div className="text-[8.5px] text-slate-500 font-mono flex items-center gap-1">
-                          <Clock className="h-2.5 w-2.5 text-indigo-500/75 shrink-0 animate-pulse" />
+                          <Clock className={`h-2.5 w-2.5 shrink-0 ${selectedFileId === file.id ? "text-indigo-400" : "text-indigo-500/75 animate-pulse"}`} />
                           <span>Recebido em: {formattedDate}</span>
                         </div>
 
@@ -837,7 +849,7 @@ export default function App() {
                           <span className="text-[9px] font-semibold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
                             {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job" : "Jobs"}
                           </span>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             <a
                               href={`/api/uploads/download/${file.id}`}
                               className="w-5.5 h-5.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 flex items-center justify-center transition"
@@ -875,11 +887,25 @@ export default function App() {
           {/* SEARCH, FILTERS & REGISTER ACTION ROW */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-4">
             
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                <FileText className="h-4.5 w-4.5 text-indigo-400" />
-                Histórico de Logs de Backup
-              </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                  <FileText className="h-4.5 w-4.5 text-indigo-400" />
+                  Histórico de Logs de Backup
+                </h2>
+                {selectedFileId && (
+                  <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono mt-1 sm:mt-0 max-w-full sm:max-w-xs">
+                    <span className="truncate">Arq: {uploads.find(u => u.id === selectedFileId)?.fileName || "Filtro"}</span>
+                    <button 
+                      onClick={() => setSelectedFileId(null)} 
+                      className="ml-1 text-slate-400 hover:text-white font-bold text-xs"
+                      title="Limpar filtro de arquivo"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={() => setIsAddingManual(!isAddingManual)}
@@ -1053,6 +1079,7 @@ export default function App() {
                     setSearchQuery("");
                     setStatusFilter("all");
                     setDateFilter("all");
+                    setSelectedFileId(null);
                   }}
                   className="text-xs text-indigo-400 hover:underline font-semibold"
                 >
