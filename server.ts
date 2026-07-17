@@ -153,12 +153,190 @@ function saveBackups(data: any) {
   }
 }
 
+// Helper function to decode Quoted-Printable encoding including UTF-8 characters
+function decodeQuotedPrintable(str: string): string {
+  // Remove soft line breaks: "=" followed by CRLF or LF
+  const cleanStr = str.replace(/=\r?\n/g, "").replace(/=\n/g, "");
+  
+  // To handle UTF-8 sequences correctly, convert to hex bytes first, then decode using Buffer
+  const bytes: number[] = [];
+  for (let i = 0; i < cleanStr.length; i++) {
+    if (cleanStr[i] === '=' && i + 2 < cleanStr.length) {
+      const hex = cleanStr.substring(i + 1, i + 3);
+      if (/^[0-9A-F]{2}$/i.test(hex)) {
+        bytes.push(parseInt(hex, 16));
+        i += 2;
+        continue;
+      }
+    }
+    // Convert character to UTF-8 bytes
+    const charCode = cleanStr.charCodeAt(i);
+    if (charCode < 128) {
+      bytes.push(charCode);
+    } else {
+      // Encode as UTF-8 bytes
+      const utf8Bytes = Buffer.from(cleanStr[i], 'utf-8');
+      for (let j = 0; j < utf8Bytes.length; j++) {
+        bytes.push(utf8Bytes[j]);
+      }
+    }
+  }
+  return Buffer.from(bytes).toString('utf-8');
+}
+
+// Helper function to strip HTML tags and decode HTML entities safely
+function cleanHtmlText(html: string): string {
+  if (!html) return "";
+  
+  // Strip HTML tags
+  let txt = html.replace(/<[^>]*>/g, " ");
+  
+  // Unescape common HTML entities
+  txt = txt
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#193;/g, "Á")
+    .replace(/&#205;/g, "Í")
+    .replace(/&#211;/g, "Ó")
+    .replace(/&#218;/g, "Ú")
+    .replace(/&#194;/g, "Â")
+    .replace(/&#202;/g, "Ê")
+    .replace(/&#212;/g, "Ô")
+    .replace(/&#195;/g, "Ã")
+    .replace(/&#213;/g, "Õ")
+    .replace(/&#199;/g, "Ç")
+    .replace(/&#225;/g, "á")
+    .replace(/&#237;/g, "í")
+    .replace(/&#243;/g, "ó")
+    .replace(/&#250;/g, "ú")
+    .replace(/&#226;/g, "â")
+    .replace(/&#234;/g, "ê")
+    .replace(/&#244;/g, "ô")
+    .replace(/&#227;/g, "ã")
+    .replace(/&#245;/g, "õ")
+    .replace(/&#231;/g, "ç");
+  
+  return txt.replace(/\s+/g, " ").trim();
+}
+
 // Local regex backup parsing fallback (highly advanced & safe)
 function parseEmailLocally(subject: string, body: string): any {
-  const textToAnalyze = (subject + " " + body).toLowerCase();
+  // Decode subject if QP-encoded
+  let decodedSubject = subject;
+  if (subject.includes("=?") || subject.includes("=3D")) {
+    if (subject.includes("?Q?") || subject.includes("?q?")) {
+      const match = subject.match(/=\?[^?]+\?[Qq]\?([\s\S]*?)\?=/);
+      if (match) {
+        decodedSubject = decodeQuotedPrintable(match[1].replace(/_/g, " "));
+      }
+    } else {
+      decodedSubject = decodeQuotedPrintable(subject);
+    }
+  }
+
+  let decodedBody = body;
+  if (body.includes("=3D") || body.includes("=\r\n") || body.includes("=\n")) {
+    decodedBody = decodeQuotedPrintable(body);
+  }
+
+  const textToAnalyze = (decodedSubject + " " + decodedBody).toLowerCase();
   
-  // Detect if there are multiple lines that look like a table (separated by |, tabs, or multiple spaces)
-  const lines = body.split(/\r?\n/);
+  // 1. Try HTML Table parsing if HTML elements are present
+  if (decodedBody.toLowerCase().includes("<table") || decodedBody.toLowerCase().includes("<tr")) {
+    const detectedBackups: any[] = [];
+    
+    // Find all table rows
+    const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let trMatch;
+    
+    while ((trMatch = trRegex.exec(decodedBody)) !== null) {
+      const rowContent = trMatch[1];
+      
+      // Skip if this row is part of table headers
+      const lowerRow = rowContent.toLowerCase();
+      if (lowerRow.includes("client name") || lowerRow.includes("policy name") || lowerRow.includes("start time")) {
+        continue;
+      }
+      
+      // Find all cells (td or th) in this row
+      const tdRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+      let tdMatch;
+      const cells: string[] = [];
+      
+      while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
+        cells.push(cleanHtmlText(tdMatch[1]));
+      }
+      
+      // If we found a row with cells, let's check if it matches a NetBackup report format (typically 10 columns)
+      if (cells.length >= 8) {
+        while (cells.length < 10) {
+          cells.push("-");
+        }
+        
+        const clientName = cells[0] || "-";
+        const policyName = cells[1] || "-";
+        const startTime = cells[2] || "-";
+        const endTime = cells[3] || "-";
+        const duration = cells[4] || "-";
+        const policyType = cells[5] || "-";
+        const scheduleType = cells[6] || "-";
+        const fileCount = cells[7] || "-";
+        const jobSizeRaw = cells[8] || "-";
+        const statusCode = cells[9] || "-";
+        
+        // Skip header row if cells still contain "client name"
+        if (clientName.toLowerCase().includes("client name") || policyName.toLowerCase().includes("policy name")) {
+          continue;
+        }
+        
+        const sc = statusCode.toLowerCase();
+        const isSuccess = sc.includes("successfully") || sc.includes("success") || sc.includes("sucesso");
+        const isPending = sc.includes("pending") || sc.includes("running") || sc.includes("andamento");
+        const status = isSuccess ? "success" : (isPending ? "pending" : "failure");
+        
+        let jobSize = jobSizeRaw;
+        if (jobSizeRaw && !isNaN(parseFloat(jobSizeRaw)) && !jobSizeRaw.toLowerCase().includes("mb") && !jobSizeRaw.toLowerCase().includes("gb")) {
+          const sizeMB = parseFloat(jobSizeRaw);
+          if (sizeMB > 1024) {
+            jobSize = `${(sizeMB / 1024).toFixed(2)} GB`;
+          } else {
+            jobSize = `${sizeMB.toFixed(2)} MB`;
+          }
+        }
+        
+        detectedBackups.push({
+          clientName,
+          policyName,
+          startTime,
+          endTime,
+          duration,
+          policyType,
+          scheduleType,
+          fileCount,
+          jobSize,
+          statusCode,
+          status,
+          
+          // Compatibility fields
+          serverName: clientName,
+          systemType: "Veritas NetBackup",
+          size: jobSize,
+          errorDetails: status === "failure" ? `Falha na política: ${policyName}` : null
+        });
+      }
+    }
+    
+    if (detectedBackups.length > 0) {
+      return { backups: detectedBackups };
+    }
+  }
+
+  // 2. Standard Plain-Text / Regex Line Parsing fallback
+  const lines = decodedBody.split(/\r?\n/);
   const detectedBackups: any[] = [];
   
   for (const line of lines) {
@@ -285,7 +463,7 @@ function parseEmailLocally(subject: string, body: string): any {
 
   if (!serverName) {
     // Try to extract from subject
-    const cleanSub = subject
+    const cleanSub = decodedSubject
       .replace(/\[.*?\]/g, "")
       .replace(/(success|failed|failure|warning|alert|critical|backup|job)/ig, "")
       .trim();
@@ -556,6 +734,24 @@ app.get("/api/emails/templates", (req, res) => {
 
 // Helper function to parse email using Gemini (or local regex fallback) and save to database
 async function parseAndSaveEmailContent(subject: string, body: string, uploadFileId: string | null = null): Promise<{ newBackups: any[], isAI: boolean }> {
+  // Decode subject if QP-encoded
+  let decodedSubject = subject;
+  if (subject.includes("=?") || subject.includes("=3D")) {
+    if (subject.includes("?Q?") || subject.includes("?q?")) {
+      const match = subject.match(/=\?[^?]+\?[Qq]\?([\s\S]*?)\?=/);
+      if (match) {
+        decodedSubject = decodeQuotedPrintable(match[1].replace(/_/g, " "));
+      }
+    } else {
+      decodedSubject = decodeQuotedPrintable(subject);
+    }
+  }
+
+  let decodedBody = body;
+  if (body.includes("=3D") || body.includes("=\r\n") || body.includes("=\n")) {
+    decodedBody = decodeQuotedPrintable(body);
+  }
+
   let parsed: any;
   let isAI = false;
 
@@ -578,10 +774,10 @@ async function parseAndSaveEmailContent(subject: string, body: string, uploadFil
 Se o e-mail contiver múltiplos jobs ou servidores de backup (por exemplo, em uma tabela com várias linhas), extraia TODOS os jobs como registros separados.
 
 ASSUNTO DO EMAIL:
-${subject}
+${decodedSubject}
 
 CORPO DO EMAIL:
-${body}
+${decodedBody}
 
 Para cada job ou servidor encontrado, extraia os seguintes campos:
 1. clientName: Nome do cliente de backup/servidor.
@@ -637,10 +833,10 @@ Para cada job ou servidor encontrado, extraia os seguintes campos:
       }
     } catch (e) {
       console.error("Gemini parser failed, utilizing regex-based engine fallback:", e);
-      parsed = parseEmailLocally(subject, body);
+      parsed = parseEmailLocally(decodedSubject, decodedBody);
     }
   } else {
-    parsed = parseEmailLocally(subject, body);
+    parsed = parseEmailLocally(decodedSubject, decodedBody);
   }
 
   let backupsList: any[] = [];
@@ -988,14 +1184,42 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
         backupIds = result.newBackups.map((b: any) => b.id);
       }
     } else if (fileExt === "msg" || fileName.endsWith(".msg")) {
-      const msgReader = new MsgReader(fileBuffer);
-      const fileData = msgReader.getFileData();
-      const sub = fileData.subject || `Relatório MSG: ${fileName}`;
-      const bod = fileData.body || fileData.html || "";
+      // Check if this is a real binary Outlook MSG file (OLE container starts with D0 CF 11 E0)
+      const isBinaryMsg = fileBuffer.length >= 4 && 
+                          fileBuffer[0] === 0xD0 && 
+                          fileBuffer[1] === 0xCF && 
+                          fileBuffer[2] === 0x11 && 
+                          fileBuffer[3] === 0xE0;
       
-      const result = await parseAndSaveEmailContent(sub, bod, fileId);
-      backupsExtracted = result.newBackups.length;
-      backupIds = result.newBackups.map((b: any) => b.id);
+      if (isBinaryMsg) {
+        const msgReader = new MsgReader(fileBuffer);
+        const fileData = msgReader.getFileData();
+        const sub = fileData.subject || `Relatório MSG: ${fileName}`;
+        const bod = fileData.body || fileData.html || "";
+        
+        const result = await parseAndSaveEmailContent(sub, bod, fileId);
+        backupsExtracted = result.newBackups.length;
+        backupIds = result.newBackups.map((b: any) => b.id);
+      } else {
+        // It's probably a text-based email format (MIME/EML or TXT) renamed to .msg!
+        // Let's try parsing it as EML first.
+        try {
+          const parsedEml = await simpleParser(fileBuffer);
+          const sub = parsedEml.subject || `Relatório EML/MSG: ${fileName}`;
+          const bod = parsedEml.text || parsedEml.textAsHtml || parsedEml.html || "";
+          
+          const result = await parseAndSaveEmailContent(sub, bod as string, fileId);
+          backupsExtracted = result.newBackups.length;
+          backupIds = result.newBackups.map((b: any) => b.id);
+        } catch (emlErr) {
+          // If EML parsing fails, parse as plain text
+          console.error("Failed to parse non-binary MSG as EML, falling back to TXT:", emlErr);
+          const text = fileBuffer.toString("utf-8");
+          const result = await parseAndSaveEmailContent(`Relatório MSG TXT: ${fileName}`, text, fileId);
+          backupsExtracted = result.newBackups.length;
+          backupIds = result.newBackups.map((b: any) => b.id);
+        }
+      }
     } else if (fileExt === "eml" || fileName.endsWith(".eml")) {
       const parsedEml = await simpleParser(fileBuffer);
       const sub = parsedEml.subject || `Relatório EML: ${fileName}`;
