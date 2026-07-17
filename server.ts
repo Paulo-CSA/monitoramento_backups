@@ -356,17 +356,74 @@ function parseDateStringToIso(str: string | null | undefined): string | null {
 }
 
 // Extracts forwarded email date/time from the email body if present
+function cleanHtmlPreservingNewlines(html: string): string {
+  if (!html) return "";
+  
+  // Replace line breaks and paragraph closing tags with newline
+  let txt = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<\/tr>/gi, "\n")
+    .replace(/<\/h[1-6]>/gi, "\n");
+    
+  // Strip all other HTML tags
+  txt = txt.replace(/<[^>]*>/g, " ");
+  
+  // Decode common HTML entities
+  txt = txt
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#193;/g, "Á")
+    .replace(/&#205;/g, "Í")
+    .replace(/&#211;/g, "Ó")
+    .replace(/&#218;/g, "Ú")
+    .replace(/&#194;/g, "Â")
+    .replace(/&#202;/g, "Ê")
+    .replace(/&#212;/g, "Ô")
+    .replace(/&#195;/g, "Ã")
+    .replace(/&#213;/g, "Õ")
+    .replace(/&#199;/g, "Ç")
+    .replace(/&#225;/g, "á")
+    .replace(/&#237;/g, "í")
+    .replace(/&#243;/g, "ó")
+    .replace(/&#250;/g, "ú")
+    .replace(/&#226;/g, "â")
+    .replace(/&#234;/g, "ê")
+    .replace(/&#244;/g, "ô")
+    .replace(/&#227;/g, "ã")
+    .replace(/&#245;/g, "õ")
+    .replace(/&#231;/g, "ç");
+    
+  return txt;
+}
+
 function extractForwardedDate(body: string): string | null {
   if (!body) return null;
   
-  // Clean all HTML first to get pure text lines for safe matching
-  const cleanBody = cleanHtmlText(body);
+  // Clean all HTML first to get pure text lines while preserving newlines
+  const cleanBody = cleanHtmlPreservingNewlines(body);
   const lines = cleanBody.split(/\r?\n/);
   
   for (const line of lines) {
-    const match = line.match(/(?:Date|Data|Sent|Enviado|Enviado em|Enviada em):\s*([^\r\n]+)/i);
+    const match = line.match(/(?:Date|Data|Sent|Enviado|Enviado em|Enviada em)[^\w\r\n]*[:\-]?\s*([^\r\n]+)/i);
     if (match && match[1]) {
-      const candidate = match[1].trim();
+      let candidate = match[1].trim();
+      
+      // Clean anything after '<' or '(' to ignore email/name postfixes
+      const angleBracketIdx = candidate.indexOf("<");
+      if (angleBracketIdx !== -1) {
+        candidate = candidate.substring(0, angleBracketIdx).trim();
+      }
+      const parenIdx = candidate.indexOf("(");
+      if (parenIdx !== -1) {
+        candidate = candidate.substring(0, parenIdx).trim();
+      }
+      
       const parsed = parseDateStringToIso(candidate);
       if (parsed) {
         return parsed;
