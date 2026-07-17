@@ -229,60 +229,65 @@ function parseDateStringToIso(str: string | null | undefined): string | null {
     return null;
   }
   
-  const cleanStr = str.replace(/[•\t\r\n]/g, " ").trim();
-
-  // Try native Date.parse FIRST if it doesn't look like DD/MM/YYYY (which native parses as MM/DD/YYYY)
-  const isDDMMYYYY = /\d{2}\/\d{2}\/\d{4}/.test(cleanStr);
-  if (!isDDMMYYYY) {
-    try {
-      const timestamp = Date.parse(cleanStr);
-      if (!isNaN(timestamp)) {
-        return new Date(timestamp).toISOString();
-      }
-    } catch (e) {}
-  }
-
-  // Match NetBackup format: "Jul 6, 2026 7:15:35 PM" or "Jul 06, 2026 19:15:35" or "06/07/2026 19:15:35"
-  const months: { [key: string]: number } = {
-    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
-    dist: 11, de: 11, "de jul. de": 6, "de julho de": 6, "julho": 6, "jul.": 6
-  };
-
-  // Match standard English/email date format: "Fri, 17 Jul 2026 15:08:33 +0000" or "17 Jul 2026 15:08:33"
-  const matchEmailDate = cleanStr.match(/(?:\w{3},\s+)?(\d{1,2})\s+([a-zA-Z]{3,10})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
-  if (matchEmailDate) {
-    const day = parseInt(matchEmailDate[1], 10);
-    const monthStr = matchEmailDate[2].toLowerCase().substring(0, 3);
-    const year = parseInt(matchEmailDate[3], 10);
-    const hours = parseInt(matchEmailDate[4], 10);
-    const minutes = parseInt(matchEmailDate[5], 10);
-    const seconds = parseInt(matchEmailDate[6], 10);
+  let cleanStr = str.replace(/[•\t\r\n]/g, " ").trim();
+  
+  // Strip weekdays (Portuguese and English)
+  cleanStr = cleanStr.replace(/^(?:segunda-feira|terça-feira|quarta-feira|quinta-feira|sexta-feira|sábado|domingo|seg|ter|qua|qui|sex|sáb|dom|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)[,\s]*/i, "");
+  
+  // Pattern A: DD/MM/YYYY or DD/MM/YY with optional time (allowing hours/minutes and optional seconds, and optional "às" / "as" / "at")
+  const matchSlash = cleanStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s*(?:às|as|at|@)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?/i);
+  if (matchSlash) {
+    const day = parseInt(matchSlash[1], 10);
+    const month = parseInt(matchSlash[2], 10) - 1; // 0-indexed
+    let year = parseInt(matchSlash[3], 10);
+    if (year < 100) {
+      year = year < 50 ? 2000 + year : 1900 + year;
+    }
+    const hours = matchSlash[4] ? parseInt(matchSlash[4], 10) : 0;
+    const minutes = matchSlash[5] ? parseInt(matchSlash[5], 10) : 0;
+    const seconds = matchSlash[6] ? parseInt(matchSlash[6], 10) : 0;
     
-    if (months[monthStr] !== undefined) {
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       try {
-        const d = new Date(Date.UTC(year, months[monthStr], day, hours, minutes, seconds));
+        const d = new Date(year, month, day, hours, minutes, seconds);
         return d.toISOString();
       } catch (e) {}
     }
   }
 
-  const matchPt = cleanStr.match(/(\d{1,2})\s+de\s+([a-zA-Zç\.]+)\s+de\s+(\d{4})\s*([0-9:]+)?/i);
+  // Pattern B: YYYY-MM-DD with optional time
+  const matchHyphen = cleanStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s*(?:às|as|at|@)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?/i);
+  if (matchHyphen) {
+    const year = parseInt(matchHyphen[1], 10);
+    const month = parseInt(matchHyphen[2], 10) - 1;
+    const day = parseInt(matchHyphen[3], 10);
+    const hours = matchHyphen[4] ? parseInt(matchHyphen[4], 10) : 0;
+    const minutes = matchHyphen[5] ? parseInt(matchHyphen[5], 10) : 0;
+    const seconds = matchHyphen[6] ? parseInt(matchHyphen[6], 10) : 0;
+    
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      try {
+        const d = new Date(year, month, day, hours, minutes, seconds);
+        return d.toISOString();
+      } catch (e) {}
+    }
+  }
+
+  // Pattern C: Portuguese written date: "17 de julho de 2026 às 15:08" or "17 de jul de 2026 15:08"
+  const matchPt = cleanStr.match(/^(\d{1,2})\s+de\s+([a-zA-Zç\.\-]+)\s+de\s+(\d{4})(?:\s*(?:às|as|at|@)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?/i);
   if (matchPt) {
     const day = parseInt(matchPt[1], 10);
-    const monthName = matchPt[2].toLowerCase().substring(0, 3);
+    const monthStr = matchPt[2].toLowerCase().substring(0, 3);
     const year = parseInt(matchPt[3], 10);
-    const timeStr = matchPt[4] || "00:00:00";
+    const hours = matchPt[4] ? parseInt(matchPt[4], 10) : 0;
+    const minutes = matchPt[5] ? parseInt(matchPt[5], 10) : 0;
+    const seconds = matchPt[6] ? parseInt(matchPt[6], 10) : 0;
     
     const ptMonths: { [key: string]: number } = {
       jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5, jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11
     };
     
-    const month = ptMonths[monthName] !== undefined ? ptMonths[monthName] : 6; // default to july if fallback
-    
-    const timeParts = timeStr.split(":");
-    const hours = parseInt(timeParts[0] || "0", 10);
-    const minutes = parseInt(timeParts[1] || "0", 10);
-    const seconds = parseInt(timeParts[2] || "0", 10);
+    const month = ptMonths[monthStr] !== undefined ? ptMonths[monthStr] : 6; // default to july
     
     try {
       const d = new Date(year, month, day, hours, minutes, seconds);
@@ -290,57 +295,56 @@ function parseDateStringToIso(str: string | null | undefined): string | null {
     } catch (e) {}
   }
 
-  const matchNetBackup = cleanStr.match(/([a-zA-Z]{3})\s+(\d+),\s+(\d{4})\s+(\d+):(\d+):(\d+)\s*(AM|PM)?/i);
-  if (matchNetBackup) {
-    const monthStr = matchNetBackup[1].toLowerCase().substring(0, 3);
-    const day = parseInt(matchNetBackup[2], 10);
-    const year = parseInt(matchNetBackup[3], 10);
-    let hours = parseInt(matchNetBackup[4], 10);
-    const minutes = parseInt(matchNetBackup[5], 10);
-    const seconds = parseInt(matchNetBackup[6], 10);
-    const ampm = matchNetBackup[7];
-
-    if (months[monthStr] !== undefined) {
+  // Pattern D: English written date: "Jul 17, 2026 3:08 PM" or "July 17, 2026 15:08"
+  const matchEn = cleanStr.match(/^([a-zA-Z]{3,10})\s+(\d{1,2}),\s+(\d{4})(?:\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+  if (matchEn) {
+    const monthStr = matchEn[1].toLowerCase().substring(0, 3);
+    const day = parseInt(matchEn[2], 10);
+    const year = parseInt(matchEn[3], 10);
+    let hours = matchEn[4] ? parseInt(matchEn[4], 10) : 0;
+    const minutes = matchEn[5] ? parseInt(matchEn[5], 10) : 0;
+    const seconds = matchEn[6] ? parseInt(matchEn[6], 10) : 0;
+    const ampm = matchEn[7];
+    
+    const enMonths: { [key: string]: number } = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, out: 9, nov: 10, dec: 11
+    };
+    
+    if (enMonths[monthStr] !== undefined) {
       if (ampm) {
         if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
         if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
       }
       try {
-        const d = new Date(year, months[monthStr], day, hours, minutes, seconds);
+        const d = new Date(year, enMonths[monthStr], day, hours, minutes, seconds);
         return d.toISOString();
       } catch (e) {}
     }
   }
 
-  const matchBR = cleanStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
-  if (matchBR) {
-    const day = parseInt(matchBR[1], 10);
-    const month = parseInt(matchBR[2], 10) - 1;
-    const year = parseInt(matchBR[3], 10);
-    const hours = parseInt(matchBR[4], 10);
-    const minutes = parseInt(matchBR[5], 10);
-    const seconds = parseInt(matchBR[6], 10);
-    try {
-      const d = new Date(year, month, day, hours, minutes, seconds);
-      return d.toISOString();
-    } catch (e) {}
+  // Pattern E: Standard English email style: "17 Jul 2026 15:08" or "17 Jul 2026"
+  const matchEmail = cleanStr.match(/^(\d{1,2})\s+([a-zA-Z]{3,10})\s+(\d{4})(?:\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?/i);
+  if (matchEmail) {
+    const day = parseInt(matchEmail[1], 10);
+    const monthStr = matchEmail[2].toLowerCase().substring(0, 3);
+    const year = parseInt(matchEmail[3], 10);
+    const hours = matchEmail[4] ? parseInt(matchEmail[4], 10) : 0;
+    const minutes = matchEmail[5] ? parseInt(matchEmail[5], 10) : 0;
+    const seconds = matchEmail[6] ? parseInt(matchEmail[6], 10) : 0;
+    
+    const enMonths: { [key: string]: number } = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, out: 9, nov: 10, dec: 11
+    };
+    
+    if (enMonths[monthStr] !== undefined) {
+      try {
+        const d = new Date(year, enMonths[monthStr], day, hours, minutes, seconds);
+        return d.toISOString();
+      } catch (e) {}
+    }
   }
 
-  const matchISO = cleanStr.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
-  if (matchISO) {
-    const year = parseInt(matchISO[1], 10);
-    const month = parseInt(matchISO[2], 10) - 1;
-    const day = parseInt(matchISO[3], 10);
-    const hours = parseInt(matchISO[4], 10);
-    const minutes = parseInt(matchISO[5], 10);
-    const seconds = parseInt(matchISO[6], 10);
-    try {
-      const d = new Date(year, month, day, hours, minutes, seconds);
-      return d.toISOString();
-    } catch (e) {}
-  }
-
-  // Fallback try native parse as last resort
+  // Final fallback: try native parsing
   try {
     const timestamp = Date.parse(cleanStr);
     if (!isNaN(timestamp)) {
@@ -354,11 +358,15 @@ function parseDateStringToIso(str: string | null | undefined): string | null {
 // Extracts forwarded email date/time from the email body if present
 function extractForwardedDate(body: string): string | null {
   if (!body) return null;
-  const lines = body.split(/\r?\n/);
+  
+  // Clean all HTML first to get pure text lines for safe matching
+  const cleanBody = cleanHtmlText(body);
+  const lines = cleanBody.split(/\r?\n/);
+  
   for (const line of lines) {
-    const match = line.match(/(?:Date|Data|Sent|Enviado|Enviado em|Enviada em):\s*([^<\r\n]+)/i);
+    const match = line.match(/(?:Date|Data|Sent|Enviado|Enviado em|Enviada em):\s*([^\r\n]+)/i);
     if (match && match[1]) {
-      const candidate = match[1].replace(/<[^>]*>/g, "").trim();
+      const candidate = match[1].trim();
       const parsed = parseDateStringToIso(candidate);
       if (parsed) {
         return parsed;
