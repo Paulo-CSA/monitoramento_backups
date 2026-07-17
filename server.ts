@@ -247,8 +247,25 @@ function parseDateStringToIso(str: string | null | undefined): string | null {
     jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
     dist: 11, de: 11, "de jul. de": 6, "de julho de": 6, "julho": 6, "jul.": 6
   };
-  
-  // Custom parsing for Portuguese names like "17 de julho de 2026 15:30" or "17 de jul. de 2026 15:30"
+
+  // Match standard English/email date format: "Fri, 17 Jul 2026 15:08:33 +0000" or "17 Jul 2026 15:08:33"
+  const matchEmailDate = cleanStr.match(/(?:\w{3},\s+)?(\d{1,2})\s+([a-zA-Z]{3,10})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (matchEmailDate) {
+    const day = parseInt(matchEmailDate[1], 10);
+    const monthStr = matchEmailDate[2].toLowerCase().substring(0, 3);
+    const year = parseInt(matchEmailDate[3], 10);
+    const hours = parseInt(matchEmailDate[4], 10);
+    const minutes = parseInt(matchEmailDate[5], 10);
+    const seconds = parseInt(matchEmailDate[6], 10);
+    
+    if (months[monthStr] !== undefined) {
+      try {
+        const d = new Date(Date.UTC(year, months[monthStr], day, hours, minutes, seconds));
+        return d.toISOString();
+      } catch (e) {}
+    }
+  }
+
   const matchPt = cleanStr.match(/(\d{1,2})\s+de\s+([a-zA-Zç\.]+)\s+de\s+(\d{4})\s*([0-9:]+)?/i);
   if (matchPt) {
     const day = parseInt(matchPt[1], 10);
@@ -339,9 +356,9 @@ function extractForwardedDate(body: string): string | null {
   if (!body) return null;
   const lines = body.split(/\r?\n/);
   for (const line of lines) {
-    const match = line.match(/^\s*(?:Date|Data|Sent|Enviado|Enviado em|Enviada em):\s*([^\r\n]+)/i);
+    const match = line.match(/(?:Date|Data|Sent|Enviado|Enviado em|Enviada em):\s*([^<\r\n]+)/i);
     if (match && match[1]) {
-      const candidate = match[1].trim();
+      const candidate = match[1].replace(/<[^>]*>/g, "").trim();
       const parsed = parseDateStringToIso(candidate);
       if (parsed) {
         return parsed;
@@ -1376,7 +1393,10 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
           const parsedEml = await simpleParser(fileBuffer);
           const sub = parsedEml.subject || `Relatório EML/MSG: ${fileName}`;
           const bod = parsedEml.text || parsedEml.textAsHtml || parsedEml.html || "";
-          const receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
+          let receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
+          if (!receivedAt) {
+            receivedAt = extractForwardedDate(fileBuffer.toString("utf-8"));
+          }
           
           const result = await parseAndSaveEmailContent(sub, bod as string, fileId, receivedAt);
           backupsExtracted = result.newBackups.length;
@@ -1385,7 +1405,8 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
           // If EML parsing fails, parse as plain text
           console.error("Failed to parse non-binary MSG as EML, falling back to TXT:", emlErr);
           const text = fileBuffer.toString("utf-8");
-          const result = await parseAndSaveEmailContent(`Relatório MSG TXT: ${fileName}`, text, fileId);
+          const receivedAt = extractForwardedDate(text);
+          const result = await parseAndSaveEmailContent(`Relatório MSG TXT: ${fileName}`, text, fileId, receivedAt);
           backupsExtracted = result.newBackups.length;
           backupIds = result.newBackups.map((b: any) => b.id);
         }
@@ -1394,7 +1415,10 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
       const parsedEml = await simpleParser(fileBuffer);
       const sub = parsedEml.subject || `Relatório EML: ${fileName}`;
       const bod = parsedEml.text || parsedEml.textAsHtml || parsedEml.html || "";
-      const receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
+      let receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
+      if (!receivedAt) {
+        receivedAt = extractForwardedDate(fileBuffer.toString("utf-8"));
+      }
       
       const result = await parseAndSaveEmailContent(sub, bod as string, fileId, receivedAt);
       backupsExtracted = result.newBackups.length;
@@ -1404,7 +1428,7 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
       const text = fileBuffer.toString("utf-8");
       
       let txtSubject = `Relatório TXT: ${fileName}`;
-      let receivedAt: string | null = null;
+      const receivedAt = extractForwardedDate(text);
       
       // Look for Subject and Date headers in the first 30 lines of the TXT file
       const lines = text.split(/\r?\n/).slice(0, 30);
@@ -1412,14 +1436,6 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
         const subjectMatch = line.match(/^\s*Subject:\s*([^\r\n]+)/i);
         if (subjectMatch && subjectMatch[1]) {
           txtSubject = subjectMatch[1].trim();
-        }
-        const dateMatch = line.match(/^\s*(?:Date|Data|Sent|Enviado|Enviado em|Enviada em):\s*([^\r\n]+)/i);
-        if (dateMatch && dateMatch[1]) {
-          const candidate = dateMatch[1].trim();
-          const parsed = parseDateStringToIso(candidate);
-          if (parsed) {
-            receivedAt = parsed;
-          }
         }
       }
       
