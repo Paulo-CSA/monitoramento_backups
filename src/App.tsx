@@ -386,7 +386,11 @@ export default function App() {
   };
 
   // Filter out any backups that are not Veritas NetBackup to ensure all metrics/views use only Veritas NetBackup logs
-  const veritasBackups = backups.filter((b) => (b.systemType || "").toLowerCase().includes("veritas") || (b.policyName || "").toLowerCase().includes("inema"));
+  const veritasBackupsAll = backups.filter((b) => (b.systemType || "").toLowerCase().includes("veritas") || (b.policyName || "").toLowerCase().includes("inema"));
+  
+  const veritasBackups = selectedFileId
+    ? veritasBackupsAll.filter((b) => b.uploadFileId === selectedFileId)
+    : veritasBackupsAll;
 
   // Calculate stats
   const totalCount = veritasBackups.length;
