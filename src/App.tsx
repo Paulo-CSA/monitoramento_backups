@@ -448,7 +448,7 @@ export default function App() {
       
       {/* HEADER BAR */}
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
@@ -502,75 +502,75 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="max-w-[1440px] mx-auto px-6 mt-8 flex flex-col gap-6 w-full">
         
-        {/* LEFT COLUMN: VISUALIZATIONS & EMAIL FORWARD SIMULATOR (5 cols) */}
-        <section className="lg:col-span-5 flex flex-col gap-6">
+        {/* TOP ROW: VISUALIZATIONS, METRICS & INGESTION */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full">
           
           {/* KPI METRIC CARDS GRID */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="lg:col-span-4 grid grid-cols-2 gap-4 order-2 lg:order-2">
             
             {/* Total Active Backups Card */}
             <div 
               onClick={() => setStatusFilter("all")}
-              className={`p-5 rounded-3xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "all" ? "bg-slate-800 border-indigo-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "all" ? "bg-slate-800 border-indigo-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Sistemas</span>
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
-                  <Server className="h-4.5 w-4.5 text-slate-300" />
+                <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center">
+                  <Server className="h-4 w-4 text-slate-300" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-white font-mono">{totalCount}</span>
-                <span className="text-xs text-slate-500 font-medium">cadastrados</span>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold text-white font-mono">{totalCount}</span>
+                <span className="text-[10px] text-slate-500 font-medium">cadastrados</span>
               </div>
             </div>
 
             {/* Success Card with Bento Mini Bar Chart */}
             <div 
               onClick={() => setStatusFilter("success")}
-              className={`p-5 rounded-3xl border transition cursor-pointer flex flex-col justify-between h-40 ${statusFilter === "success" ? "bg-slate-800 border-emerald-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "success" ? "bg-slate-800 border-emerald-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
             >
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Taxa de Sucesso</span>
-                  <CheckCircle className="h-4.5 w-4.5 text-emerald-500" />
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
                 </div>
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-3xl font-extrabold text-white font-mono">{successRate}%</span>
-                  <span className="text-[10px] text-emerald-500 font-medium bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">{successCount} OK</span>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-2xl font-extrabold text-white font-mono">{successRate}%</span>
+                  <span className="text-[9px] text-emerald-500 font-medium bg-emerald-500/10 px-1 py-0.2 rounded border border-emerald-500/20">{successCount} OK</span>
                 </div>
               </div>
               
               {/* Mini visual bar-chart representing success rate / progress */}
-              <div className="flex items-end gap-1 h-8 mt-2">
-                <div className="flex-1 bg-indigo-500/10 h-3 rounded-sm"></div>
-                <div className="flex-1 bg-indigo-500/15 h-5 rounded-sm"></div>
-                <div className="flex-1 bg-indigo-500/20 h-4 rounded-sm"></div>
-                <div className="flex-1 bg-indigo-500/30 h-6 rounded-sm"></div>
-                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 90 ? 'bg-indigo-500 h-8' : 'bg-indigo-500/60 h-6'}`}></div>
-                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 80 ? 'bg-indigo-500 h-7' : 'bg-indigo-500/60 h-5'}`}></div>
+              <div className="flex items-end gap-1 h-6 mt-1.5">
+                <div className="flex-1 bg-indigo-500/10 h-2 rounded-sm"></div>
+                <div className="flex-1 bg-indigo-500/15 h-3 rounded-sm"></div>
+                <div className="flex-1 bg-indigo-500/20 h-2.5 rounded-sm"></div>
+                <div className="flex-1 bg-indigo-500/30 h-4 rounded-sm"></div>
+                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 90 ? 'bg-indigo-500 h-5' : 'bg-indigo-500/60 h-4'}`}></div>
+                <div className={`flex-1 rounded-sm shadow-[0_0_8px_rgba(99,102,241,0.3)] transition-all ${successRate > 80 ? 'bg-indigo-500 h-4.5' : 'bg-indigo-500/60 h-3.5'}`}></div>
               </div>
             </div>
 
             {/* Failure Card */}
             <div 
               onClick={() => setStatusFilter("failure")}
-              className={`p-5 rounded-3xl border transition cursor-pointer hover:bg-rose-500/15 ${statusFilter === "failure" ? "bg-rose-950/40 border-rose-500/50" : "bg-rose-500/10 border-rose-500/20"}`}
+              className={`p-4 rounded-2xl border transition cursor-pointer hover:bg-rose-500/15 ${statusFilter === "failure" ? "bg-rose-950/40 border-rose-500/50" : "bg-rose-500/10 border-rose-500/20"}`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase font-bold text-rose-500 tracking-wider">Falhas / Críticos</span>
-                <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center">
-                  <XCircle className="h-4.5 w-4.5 text-rose-500" />
+                <div className="w-7 h-7 rounded-full bg-rose-500/20 flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-rose-500" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-white font-mono">{failureCount}</span>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold text-white font-mono">{failureCount}</span>
                 {failureCount > 0 ? (
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-rose-400 bg-rose-500/15 border border-rose-500/25 px-1.5 py-0.5 rounded animate-pulse">Ação</span>
+                  <span className="text-[8px] uppercase font-bold tracking-wider text-rose-400 bg-rose-500/15 border border-rose-500/25 px-1 py-0.2 rounded animate-pulse">Ação</span>
                 ) : (
-                  <span className="text-xs text-slate-400">Seguro</span>
+                  <span className="text-[10px] text-slate-400">Seguro</span>
                 )}
               </div>
             </div>
@@ -578,76 +578,76 @@ export default function App() {
             {/* Pending Card */}
             <div 
               onClick={() => setStatusFilter("pending")}
-              className={`p-5 rounded-3xl border transition cursor-pointer hover:bg-amber-500/15 ${statusFilter === "pending" ? "bg-amber-950/40 border-amber-500/50" : "bg-amber-500/10 border-amber-500/20"}`}
+              className={`p-4 rounded-2xl border transition cursor-pointer hover:bg-amber-500/15 ${statusFilter === "pending" ? "bg-amber-950/40 border-amber-500/50" : "bg-amber-500/10 border-amber-500/20"}`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase font-bold text-amber-500 tracking-wider">Pendentes</span>
-                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                  <Clock className="h-4.5 w-4.5 text-amber-500 animate-spin-slow" />
+                <div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-amber-500 animate-spin-slow" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-white font-mono">{pendingCount}</span>
-                <span className="text-xs text-slate-400">Monitorados</span>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold text-white font-mono">{pendingCount}</span>
+                <span className="text-[10px] text-slate-400">Monitorados</span>
               </div>
             </div>
 
           </div>
 
           {/* VISUAL CHART: DONUT RADIAL DISTRIB */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
-              <Activity className="h-4.5 w-4.5 text-indigo-400" />
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:col-span-4 flex flex-col justify-between h-full order-1 lg:order-1">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
+              <Activity className="h-4 w-4 text-indigo-400" />
               Distribuição do Estado dos Backups
             </h3>
             
-            <div className="flex items-center justify-around gap-4 py-2">
+            <div className="flex items-center justify-around gap-4 py-1">
               {/* SVG Ring Graph */}
               <div className="relative flex items-center justify-center">
-                <svg className="w-28 h-28 transform -rotate-90">
+                <svg className="w-20 h-20 transform -rotate-90">
                   {/* Background Circle */}
                   <circle
-                    cx="56"
-                    cy="56"
-                    r="46"
+                    cx="40"
+                    cy="40"
+                    r="32"
                     className="stroke-slate-800"
-                    strokeWidth="10"
+                    strokeWidth="8"
                     fill="transparent"
                   />
                   {/* Success ring segment */}
                   {totalCount > 0 && (
                     <circle
-                      cx="56"
-                      cy="56"
-                      r="46"
+                      cx="40"
+                      cy="40"
+                      r="32"
                       className="stroke-indigo-500 transition-all duration-1000"
-                      strokeWidth="10"
+                      strokeWidth="8"
                       fill="transparent"
-                      strokeDasharray={`${2 * Math.PI * 46}`}
-                      strokeDashoffset={`${2 * Math.PI * 46 * (1 - successCount / totalCount)}`}
+                      strokeDasharray={`${2 * Math.PI * 32}`}
+                      strokeDashoffset={`${2 * Math.PI * 32 * (1 - successCount / totalCount)}`}
                       strokeLinecap="round"
                     />
                   )}
                 </svg>
                 {/* Text in the middle */}
                 <div className="absolute flex flex-col items-center">
-                  <span className="text-2xl font-extrabold text-white font-mono">{successRate}%</span>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider">Sucesso</span>
+                  <span className="text-lg font-extrabold text-white font-mono">{successRate}%</span>
+                  <span className="text-[9px] text-slate-400 uppercase tracking-wider">Sucesso</span>
                 </div>
               </div>
 
               {/* Legends with detail and colors */}
-              <div className="flex flex-col gap-2.5 text-xs">
+              <div className="flex flex-col gap-1.5 text-[11px]">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span className="text-slate-300 font-medium">Sucesso ({successCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                  <div className="w-2 h-2 rounded-full bg-rose-500" />
                   <span className="text-slate-300 font-medium">Falha ({failureCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
                   <span className="text-slate-300 font-medium">Pendente ({pendingCount})</span>
                 </div>
               </div>
@@ -655,20 +655,20 @@ export default function App() {
           </div>
 
           {/* CARREGADOR DE ARQUIVOS (DRAG & DROP FILE UPLOAD ENGINE) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 relative overflow-hidden lg:col-span-4 flex flex-col justify-between h-full order-3 lg:order-3">
             
             {/* Ambient visual badge */}
-            <div className="absolute top-0 right-0 p-3">
-              <span className="text-[9px] font-mono bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 rounded-full px-2.5 py-0.5 uppercase">
+            <div className="absolute top-0 right-0 p-2">
+              <span className="text-[8px] font-mono bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase">
                 Importador Veritas
               </span>
             </div>
 
-            <div className="flex items-center gap-2 mb-2">
-              <FileUp className="h-4.5 w-4.5 text-indigo-400" />
+            <div className="flex items-center gap-2 mb-1">
+              <FileUp className="h-4 w-4 text-indigo-400" />
               <h3 className="text-sm font-semibold text-white">Importar Relatório de Backup</h3>
             </div>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-[11px] text-slate-400 mb-2">
               Envie arquivos nos formatos <strong>.msg</strong>, <strong>.eml</strong>, <strong>.pdf</strong> ou <strong>.txt</strong> baixados diretamente do seu e-mail ou servidor Veritas.
             </p>
 
@@ -695,18 +695,18 @@ export default function App() {
                 };
                 input.click();
               }}
-              className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition duration-200 flex flex-col items-center justify-center gap-3 group relative overflow-hidden ${
+              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition duration-200 flex flex-col items-center justify-center gap-2 group relative overflow-hidden ${
                 isDragging
                   ? "border-indigo-500 bg-indigo-500/10"
                   : "border-slate-800 hover:border-indigo-500/50 hover:bg-slate-950/40"
               }`}
             >
               {isUploading ? (
-                <div className="py-4 space-y-3 flex flex-col items-center">
-                  <RefreshCw className="h-8 w-8 text-indigo-400 animate-spin" />
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-white">Processando com Inteligência Artificial...</p>
-                    <p className="text-[10px] text-slate-500">Lendo tabelas e mapeando jobs de backup</p>
+                <div className="py-2 space-y-2 flex flex-col items-center">
+                  <RefreshCw className="h-6 w-6 text-indigo-400 animate-spin" />
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] font-bold text-white">Processando com Inteligência Artificial...</p>
+                    <p className="text-[9px] text-slate-500">Lendo tabelas e mapeando jobs de backup</p>
                   </div>
                   {/* Subtle scanning bar animation */}
                   <div className="absolute inset-x-0 bottom-0 h-1 bg-indigo-500/20">
@@ -715,14 +715,14 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-slate-950 flex items-center justify-center group-hover:scale-110 transition duration-150 border border-slate-800 group-hover:border-indigo-500/30">
-                    <Upload className="h-5 w-5 text-slate-400 group-hover:text-indigo-400" />
+                  <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center group-hover:scale-105 transition duration-150 border border-slate-800 group-hover:border-indigo-500/30">
+                    <Upload className="h-4.5 w-4.5 text-slate-400 group-hover:text-indigo-400" />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-slate-200 group-hover:text-white transition">
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] font-semibold text-slate-200 group-hover:text-white transition">
                       Arraste seu arquivo de backup aqui ou clique para buscar
                     </p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[9px] text-slate-500">
                       Suporta arquivos de emails exportados ou PDFs de relatórios consolidados
                     </p>
                   </div>
@@ -732,8 +732,8 @@ export default function App() {
 
             {/* Error Display */}
             {uploadError && (
-              <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="mt-2 p-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] rounded-lg flex items-start gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <p>{uploadError}</p>
               </div>
             )}
@@ -745,11 +745,11 @@ export default function App() {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
-                  className="mt-4 p-4 rounded-2xl border bg-slate-950 border-indigo-500/30 text-xs space-y-3"
+                  className="mt-2 p-3 rounded-xl border bg-slate-950 border-indigo-500/30 text-[11px] space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-indigo-400 flex items-center gap-1">
-                      <Sparkles className="h-3.5 w-3.5" /> IA: Relatório Analisado com Sucesso!
+                      <Sparkles className="h-3 w-3" /> IA: Relatório Analisado com Sucesso!
                     </span>
                     <button 
                       onClick={() => setParseResult(null)} 
@@ -758,10 +758,10 @@ export default function App() {
                       ×
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono border-t border-slate-800/80 pt-2 pb-1">
+                  <div className="grid grid-cols-2 gap-1.5 font-mono border-t border-slate-800/80 pt-1.5 pb-1 text-[10px]">
                     <div>
                       <span className="text-slate-500 block">SISTEMA EXTRAÍDO:</span>
-                      <span className="text-slate-200 font-semibold block truncate">{parseResult.serverName}</span>
+                      <span className="text-slate-200 font-semibold block truncate" title={parseResult.serverName}>{parseResult.serverName}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block">TECNOLOGIA:</span>
@@ -781,25 +781,153 @@ export default function App() {
                   </div>
 
                   {parseResult.count && parseResult.count > 0 && (
-                    <div className="border-t border-slate-800/80 pt-2 flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                    <div className="border-t border-slate-800/80 pt-1.5 flex justify-between items-center text-[9px] text-slate-400 font-mono">
                       <span>JOBS DE BACKUPS DETECTADOS E MAPEADOS:</span>
-                      <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded font-bold">
+                      <span className="bg-indigo-550/15 text-indigo-400 border border-indigo-550/25 px-1.5 py-0.2 rounded font-bold">
                         {parseResult.count} Jobs
                       </span>
                     </div>
                   )}
 
-                  <p className="text-[10px] text-slate-500 italic">Os novos registros foram inseridos no topo da lista à direita.</p>
+                  <p className="text-[9px] text-slate-500 italic">Os novos registros foram inseridos no topo da lista abaixo.</p>
                 </motion.div>
               )}
             </AnimatePresence>
 
           </div>
 
-        </section>
+        </div>
 
-        {/* RIGHT COLUMN: MAIN LOGS & LIVE LIST (7 cols) */}
-        <section className="lg:col-span-7 flex flex-col gap-6">
+        {/* BOTTOM SECTION: MAIN LOGS & LIVE LIST */}
+        <section className="flex flex-col gap-6 w-full">
+
+          {/* GERENCIADOR DE ARQUIVOS ENVIADOS (FILE ARCHIVE & AUDIT ENGINE) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Database className="h-4 w-4 text-indigo-400" />
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Gerenciador de Arquivos Enviados</h3>
+                  <p className="text-[11px] text-slate-500">Histórico de importações organizadas cronologicamente</p>
+                </div>
+              </div>
+              
+              {uploads.length > 0 && (
+                <button
+                  onClick={handleResetUploads}
+                  className="px-3 py-1 border border-rose-500/30 hover:border-rose-500 text-rose-400 hover:text-white bg-rose-500/5 hover:bg-rose-600 transition rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  <span>Limpar Todos os Uploads</span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Todos os arquivos analisados pela inteligência artificial ficam armazenados com segurança no servidor. Você pode baixar os arquivos originais a qualquer momento ou excluí-los para remover os respectivos registros de logs do dashboard.
+            </p>
+
+            {/* List of Files */}
+            <div className="space-y-2.5">
+              {uploads.length === 0 ? (
+                <div className="text-center py-6 bg-slate-950/40 rounded-xl border border-dashed border-slate-800/80 p-4">
+                  <FileText className="h-8 w-8 text-slate-700 mx-auto stroke-[1.5]" />
+                  <p className="text-xs text-slate-400 font-semibold mt-2">Nenhum arquivo enviado até o momento</p>
+                  <p className="text-[10px] text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
+                    Arraste ou carregue um arquivo no importador acima para visualizar o histórico de importações nesta seção.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                  {uploads.map((file) => {
+                    const formattedDate = new Date(file.uploadedAt).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit"
+                    });
+                    
+                    const sizeInKB = (file.fileSize / 1024).toFixed(1);
+                    const fileTypeUpper = file.fileType.toUpperCase();
+
+                    return (
+                      <div
+                        key={file.id}
+                        className="bg-slate-950/60 hover:bg-slate-950 border border-slate-800/60 hover:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition group"
+                      >
+                        <div className="flex items-start gap-3 min-w-0">
+                          {/* File type icon badge */}
+                          <div className={`w-9 h-9 rounded-lg flex flex-col items-center justify-center font-mono text-[9px] font-bold shrink-0 border ${
+                            file.fileType === "pdf"
+                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              : file.fileType === "msg"
+                              ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                              : file.fileType === "eml"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                          }`}>
+                            <FileText className="h-4 w-4 mb-0.5" />
+                            <span>{fileTypeUpper}</span>
+                          </div>
+
+                          <div className="min-w-0 text-left">
+                            <p className="text-xs font-semibold text-slate-200 group-hover:text-white truncate font-mono select-all">
+                              {file.fileName}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-slate-500 font-mono">
+                              <span>Tamanho: {sizeInKB} KB</span>
+                              <span className="text-slate-700">•</span>
+                              <span>Enviado em: {formattedDate}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 border-slate-850 pt-2 sm:pt-0">
+                          {/* Extracted Backups count info */}
+                          <span className={`text-[10px] font-semibold font-mono px-2 py-0.5 rounded-full ${
+                            file.backupsExtracted > 0
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          }`}>
+                            {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job Mapeado" : "Jobs Mapeados"}
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            {/* Download file button */}
+                            <a
+                              href={`/api/uploads/download/${file.id}`}
+                              className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 flex items-center justify-center transition"
+                              title="Baixar arquivo original novamente"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </a>
+
+                            {/* Delete file button */}
+                            <button
+                              onClick={(e) => handleDeleteUpload(file.id, e)}
+                              className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-rose-950/25 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 flex items-center justify-center transition cursor-pointer"
+                              title="Excluir arquivo e seus backups associados"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] text-slate-500 border-t border-slate-800/80 pt-3.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>O banco de dados armazena os arquivos de logs de forma encriptada, assegurando a integridade e privacidade das informações industriais analisadas.</span>
+            </div>
+
+          </div>
           
           {/* SEARCH, FILTERS & REGISTER ACTION ROW */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-4">
@@ -1300,133 +1428,7 @@ export default function App() {
             )}
           </div>
 
-          {/* GERENCIADOR DE ARQUIVOS ENVIADOS (FILE ARCHIVE & AUDIT ENGINE) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5">
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <Database className="h-4.5 w-4.5 text-indigo-400" />
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Gerenciador de Arquivos Enviados</h3>
-                  <p className="text-[11px] text-slate-500">Histórico de importações organizadas cronologicamente</p>
-                </div>
-              </div>
-              
-              {uploads.length > 0 && (
-                <button
-                  onClick={handleResetUploads}
-                  className="px-3.5 py-1.5 border border-rose-500/30 hover:border-rose-500 text-rose-400 hover:text-white bg-rose-500/5 hover:bg-rose-600 transition rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span>Limpar Todos os Uploads</span>
-                </button>
-              )}
-            </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Todos os arquivos analisados pela inteligência artificial ficam armazenados com segurança no servidor. Você pode baixar os arquivos originais a qualquer momento ou excluí-los para remover os respectivos registros de logs do dashboard.
-            </p>
-
-            {/* List of Files */}
-            <div className="space-y-3">
-              {uploads.length === 0 ? (
-                <div className="text-center py-10 bg-slate-950/40 rounded-2xl border border-dashed border-slate-800/80 p-6">
-                  <FileText className="h-10 w-10 text-slate-700 mx-auto stroke-[1.5]" />
-                  <p className="text-xs text-slate-400 font-semibold mt-3">Nenhum arquivo enviado até o momento</p>
-                  <p className="text-[10px] text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
-                    Arraste ou carregue um arquivo no importador acima para visualizar o histórico de importações nesta seção.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
-                  {uploads.map((file) => {
-                    const formattedDate = new Date(file.uploadedAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit"
-                    });
-                    
-                    const sizeInKB = (file.fileSize / 1024).toFixed(1);
-                    const fileTypeUpper = file.fileType.toUpperCase();
-
-                    return (
-                      <div
-                        key={file.id}
-                        className="bg-slate-950/60 hover:bg-slate-950 border border-slate-800/60 hover:border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition group"
-                      >
-                        <div className="flex items-start gap-3 min-w-0">
-                          {/* File type icon badge */}
-                          <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-mono text-[9px] font-bold shrink-0 border ${
-                            file.fileType === "pdf"
-                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                              : file.fileType === "msg"
-                              ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                              : file.fileType === "eml"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                          }`}>
-                            <FileText className="h-4.5 w-4.5 mb-0.5" />
-                            <span>{fileTypeUpper}</span>
-                          </div>
-
-                          <div className="min-w-0 text-left">
-                            <p className="text-xs font-semibold text-slate-200 group-hover:text-white truncate font-mono select-all">
-                              {file.fileName}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[10px] text-slate-500 font-mono">
-                              <span>Tamanho: {sizeInKB} KB</span>
-                              <span className="text-slate-700">•</span>
-                              <span>Enviado em: {formattedDate}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 border-slate-850 pt-2.5 sm:pt-0">
-                          {/* Extracted Backups count info */}
-                          <span className={`text-[10px] font-semibold font-mono px-2.5 py-1 rounded-full ${
-                            file.backupsExtracted > 0
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                          }`}>
-                            {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job Mapeado" : "Jobs Mapeados"}
-                          </span>
-
-                          <div className="flex items-center gap-2">
-                            {/* Download file button */}
-                            <a
-                              href={`/api/uploads/download/${file.id}`}
-                              className="w-8.5 h-8.5 rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 flex items-center justify-center transition"
-                              title="Baixar arquivo original novamente"
-                            >
-                              <Download className="h-4 w-4" />
-                            </a>
-
-                            {/* Delete file button */}
-                            <button
-                              onClick={(e) => handleDeleteUpload(file.id, e)}
-                              className="w-8.5 h-8.5 rounded-lg bg-slate-900 hover:bg-rose-950/25 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 flex items-center justify-center transition"
-                              title="Excluir arquivo e seus backups associados"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 text-[10px] text-slate-500 border-t border-slate-800/80 pt-3">
-              <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-              <span>O banco de dados armazena os arquivos de logs de forma encriptada, assegurando a integridade e privacidade das informações industriais analisadas.</span>
-            </div>
-
-          </div>
 
         </section>
 
