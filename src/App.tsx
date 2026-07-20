@@ -487,9 +487,9 @@ export default function App() {
   
   const successRate = totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100;
 
-  // Extract all unique dates for filters (DD/MM/YYYY)
+  // Extract all unique dates for filters (DD/MM/YYYY) from all stored log files
   const uniqueDates: string[] = (Array.from(
-    new Set(veritasBackups.map((b) => b.receivedAt ? formatReceivedAtDate(b.receivedAt) : ""))
+    new Set(veritasBackupsAll.map((b) => b.receivedAt ? formatReceivedAtDate(b.receivedAt) : ""))
   ).filter(Boolean) as string[]).sort((a: string, b: string) => {
     return safeParseDate(b) - safeParseDate(a);
   });
@@ -497,14 +497,10 @@ export default function App() {
   // Filtered Backups
   const filteredBackups = veritasBackups.filter((b) => {
     const cName = (b.clientName || b.serverName || "").toLowerCase();
-    const pName = (b.policyName || b.systemType || "Backup Geral").toLowerCase();
-    const sub = (b.subject || "").toLowerCase();
-    const query = searchQuery.toLowerCase();
+    const pName = (b.policyName || b.systemType || "").toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
 
-    const matchesSearch = 
-      cName.includes(query) ||
-      pName.includes(query) ||
-      sub.includes(query);
+    const matchesSearch = !query || cName.includes(query) || pName.includes(query);
     
     const matchesStatus = statusFilter === "all" || b.status === statusFilter;
     
@@ -690,7 +686,6 @@ export default function App() {
             <div 
               onClick={(e) => {
                 e.stopPropagation();
-                setSearchQuery("");
                 setStatusFilter("all");
               }}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "all" ? "bg-slate-800 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)]" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
@@ -711,7 +706,6 @@ export default function App() {
             <div 
               onClick={(e) => {
                 e.stopPropagation();
-                setSearchQuery("");
                 setStatusFilter(statusFilter === "success" ? "all" : "success");
               }}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "success" ? "bg-slate-800 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
@@ -741,7 +735,6 @@ export default function App() {
             <div 
               onClick={(e) => {
                 e.stopPropagation();
-                setSearchQuery("");
                 setStatusFilter(statusFilter === "failure" ? "all" : "failure");
               }}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
@@ -768,7 +761,6 @@ export default function App() {
             <div 
               onClick={(e) => {
                 e.stopPropagation();
-                setSearchQuery("");
                 setStatusFilter(statusFilter === "pending" ? "all" : "pending");
               }}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
@@ -1132,7 +1124,7 @@ export default function App() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Pesquisar por servidor, tecnologia ou e-mail..."
+                  placeholder="Pesquisar por Client Name ou Policy Name..."
                   className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-4 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/35"
                 />
                 <Search className="h-4 w-4 text-slate-500 absolute left-3 top-3" />
@@ -1145,15 +1137,14 @@ export default function App() {
                   <select
                     value={statusFilter}
                     onChange={(e) => {
-                      setSearchQuery("");
                       setStatusFilter(e.target.value as any);
                     }}
                     className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/35 cursor-pointer"
                   >
-                    <option value="all">Todos os Estados ({totalCount})</option>
-                    <option value="success">Sucesso ({successCount})</option>
-                    <option value="failure">Falhas ({failureCount})</option>
-                    <option value="pending">Pendentes ({pendingCount})</option>
+                    <option value="all">Todos os Estados</option>
+                    <option value="success">Sucesso</option>
+                    <option value="failure">Falhas</option>
+                    <option value="pending">Pendentes</option>
                   </select>
                 </div>
               </div>
