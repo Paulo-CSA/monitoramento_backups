@@ -440,8 +440,17 @@ export default function App() {
   // Filter out any backups that are not Veritas NetBackup to ensure all metrics/views use only Veritas NetBackup logs
   const veritasBackupsAll = backups.filter((b) => (b.systemType || "").toLowerCase().includes("veritas") || (b.policyName || "").toLowerCase().includes("inema"));
   
-  const veritasBackups = selectedFileId
-    ? veritasBackupsAll.filter((b) => b.uploadFileId === selectedFileId)
+  // Sort uploads to get the most recent/latest uploaded file
+  const sortedUploadsByDate = [...uploads].sort((a, b) => {
+    return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+  });
+  const newestFile = sortedUploadsByDate.length > 0 ? sortedUploadsByDate[0] : null;
+
+  // Active file is selectedFileId, or if nothing is selected, the newestFile (if any uploads exist)
+  const activeFileId = selectedFileId || (newestFile ? newestFile.id : null);
+
+  const veritasBackups = activeFileId
+    ? veritasBackupsAll.filter((b) => b.uploadFileId === activeFileId)
     : veritasBackupsAll;
 
   // Calculate stats
@@ -483,7 +492,7 @@ export default function App() {
     const bDate = b.receivedAt ? formatReceivedAtDate(b.receivedAt) : "";
     const matchesDate = dateFilter === "all" || bDate === dateFilter;
     
-    const matchesFile = !selectedFileId || b.uploadFileId === selectedFileId;
+    const matchesFile = !activeFileId || b.uploadFileId === activeFileId;
 
     return matchesSearch && matchesStatus && matchesDate && matchesFile;
   });
@@ -536,42 +545,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Engine Status indicator */}
-            <div className="flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-full border border-slate-800 text-xs font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-slate-500">INGEST:</span>
-              <span className="text-indigo-400 font-semibold flex items-center gap-1">
-                <Sparkles className="h-3 w-3 animate-pulse" /> Active Parser
-              </span>
-            </div>
 
-            {/* Actions pill layout */}
-            <div className="flex flex-wrap items-center gap-2 bg-slate-900/50 p-1.5 sm:p-1 rounded-2xl sm:rounded-full border border-slate-800">
-              <button
-                onClick={() => {
-                  loadData();
-                  loadUploads();
-                }}
-                disabled={isRefreshing}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-550 disabled:bg-indigo-950/80 text-xs font-semibold text-white rounded-full shadow transition flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Sincronizar dados"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-                <span>Atualizar</span>
-              </button>
-
-              <button
-                onClick={handleResetDemo}
-                disabled={isDemoReset}
-                className="px-4 py-1.5 text-xs font-medium text-slate-400 hover:text-rose-400 rounded-full transition-colors flex items-center gap-1.5 cursor-pointer"
-                title="Resetar banco de dados para os registros demo"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Resetar Demo</span>
-              </button>
-            </div>
-          </div>
           
         </div>
       </header>
@@ -939,9 +913,16 @@ export default function App() {
                         </div>
 
                         <div className="flex items-center justify-between border-t border-slate-900/60 pt-1 mt-0.5">
-                          <span className="text-[9px] font-semibold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
-                            {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job" : "Jobs"}
-                          </span>
+                          <div className="flex items-center gap-1.5 overflow-hidden">
+                            <span className="text-[9px] font-semibold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full shrink-0">
+                              {file.backupsExtracted} {file.backupsExtracted === 1 ? "Job" : "Jobs"}
+                            </span>
+                            {newestFile?.id === file.id && (
+                              <span className="text-[8.5px] font-bold uppercase font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.2 rounded-full truncate shrink-0">
+                                {selectedFileId === file.id ? "Mais Recente" : "Ativo (Recente)"}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             <a
                               href={`/api/uploads/download/${file.id}`}
@@ -986,18 +967,22 @@ export default function App() {
                   <FileText className="h-4.5 w-4.5 text-indigo-400" />
                   Histórico de Logs de Backup
                 </h2>
-                {selectedFileId && (
+                {selectedFileId ? (
                   <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono mt-1 sm:mt-0 max-w-full sm:max-w-xs">
-                    <span className="truncate">Arq: {uploads.find(u => u.id === selectedFileId)?.fileName || "Filtro"}</span>
+                    <span className="truncate">Exibindo Arquivo Selecionado: {uploads.find(u => u.id === selectedFileId)?.fileName || "Filtro"}</span>
                     <button 
                       onClick={() => setSelectedFileId(null)} 
-                      className="ml-1 text-slate-400 hover:text-white font-bold text-xs"
+                      className="ml-1 text-slate-400 hover:text-white font-bold text-xs cursor-pointer"
                       title="Limpar filtro de arquivo"
                     >
                       ×
                     </button>
                   </div>
-                )}
+                ) : newestFile ? (
+                  <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono mt-1 sm:mt-0 max-w-full sm:max-w-xs">
+                    <span className="truncate">Exibindo Arquivo Mais Recente: {newestFile.fileName}</span>
+                  </div>
+                ) : null}
               </div>
 
               <button
