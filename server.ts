@@ -223,6 +223,105 @@ function cleanHtmlText(html: string): string {
   return txt.replace(/\s+/g, " ").trim();
 }
 
+// Helper to parse date strings from backup reports into DD/MM/YYYY format
+function parseDateStringToDDMMYYYY(str: string | Date | null | undefined): string | null {
+  if (!str) {
+    return null;
+  }
+  
+  if (str instanceof Date) {
+    const day = String(str.getUTCDate()).padStart(2, '0');
+    const month = String(str.getUTCMonth() + 1).padStart(2, '0');
+    const year = str.getUTCFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  
+  if (str === "Não detalhado" || str === "-") {
+    return null;
+  }
+  
+  let cleanStr = str.replace(/[•\t\r\n]/g, " ").trim();
+  
+  // Strip weekdays (Portuguese and English)
+  cleanStr = cleanStr.replace(/^(?:segunda-feira|terça-feira|quarta-feira|quinta-feira|sexta-feira|sábado|domingo|seg|ter|qua|qui|sex|sáb|dom|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)[,\s]*/i, "");
+
+  const monthsMap: { [key: string]: string } = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+    fev: '02', abr: '04', mai: '05', ago: '08', set: '09', out: '10', dez: '12'
+  };
+
+  // Pattern E: "17 Jul 2026 15:08" or "17 Jul 2026"
+  const matchEmail = cleanStr.match(/^(\d{1,2})\s+([a-zA-Z]{3,10})\s+(\d{4})/i);
+  if (matchEmail) {
+    const day = String(parseInt(matchEmail[1], 10)).padStart(2, '0');
+    const monthStr = matchEmail[2].toLowerCase().substring(0, 3);
+    const year = matchEmail[3];
+    const month = monthsMap[monthStr];
+    if (month) {
+      return `${day}/${month}/${year}`;
+    }
+  }
+
+  // Pattern D: "Jul 17, 2026 3:08 PM" or "July 17, 2026 15:08"
+  const matchEn = cleanStr.match(/^([a-zA-Z]{3,10})\s+(\d{1,2}),\s+(\d{4})/i);
+  if (matchEn) {
+    const monthStr = matchEn[1].toLowerCase().substring(0, 3);
+    const day = String(parseInt(matchEn[2], 10)).padStart(2, '0');
+    const year = matchEn[3];
+    const month = monthsMap[monthStr];
+    if (month) {
+      return `${day}/${month}/${year}`;
+    }
+  }
+
+  // Pattern C: Portuguese written date: "17 de julho de 2026"
+  const matchPt = cleanStr.match(/^(\d{1,2})\s+de\s+([a-zA-Zç\.\-]+)\s+de\s+(\d{4})/i);
+  if (matchPt) {
+    const day = String(parseInt(matchPt[1], 10)).padStart(2, '0');
+    const monthStr = matchPt[2].toLowerCase().substring(0, 3);
+    const year = matchPt[3];
+    const month = monthsMap[monthStr];
+    if (month) {
+      return `${day}/${month}/${year}`;
+    }
+  }
+
+  // Pattern A: DD/MM/YYYY or DD/MM/YY
+  const matchSlash = cleanStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (matchSlash) {
+    const day = String(parseInt(matchSlash[1], 10)).padStart(2, '0');
+    const month = String(parseInt(matchSlash[2], 10)).padStart(2, '0');
+    let year = parseInt(matchSlash[3], 10);
+    if (year < 100) {
+      year = year < 50 ? 2000 + year : 1900 + year;
+    }
+    return `${day}/${month}/${year}`;
+  }
+
+  // Pattern B: YYYY-MM-DD
+  const matchHyphen = cleanStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (matchHyphen) {
+    const year = matchHyphen[1];
+    const month = String(parseInt(matchHyphen[2], 10)).padStart(2, '0');
+    const day = String(parseInt(matchHyphen[3], 10)).padStart(2, '0');
+    return `${day}/${month}/${year}`;
+  }
+
+  // Final fallback using JS Date parsing
+  try {
+    const timestamp = Date.parse(cleanStr);
+    if (!isNaN(timestamp)) {
+      const d = new Date(timestamp);
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const year = d.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (e) {}
+
+  return null;
+}
+
 // Helper to parse date strings from backup reports into standard ISO strings
 function parseDateStringToIso(str: string | null | undefined): string | null {
   if (!str || str === "Não detalhado" || str === "-") {
@@ -424,7 +523,7 @@ function extractForwardedDate(body: string): string | null {
         candidate = candidate.substring(0, parenIdx).trim();
       }
       
-      const parsed = parseDateStringToIso(candidate);
+      const parsed = parseDateStringToDDMMYYYY(candidate);
       if (parsed) {
         return parsed;
       }
@@ -453,19 +552,9 @@ function extractDateFromAnyContent(text: string): string | null {
         candidate = candidate.substring(0, parenIdx).trim();
       }
       
-      const parsed = parseDateStringToIso(candidate);
+      const parsed = parseDateStringToDDMMYYYY(candidate);
       if (parsed) {
-        try {
-          const d = new Date(parsed);
-          // Set to 12:00:00 UTC to ensure that timezone shifts do not move the date to another day
-          const utcYear = d.getFullYear();
-          const utcMonth = d.getMonth();
-          const utcDay = d.getDate();
-          const safeDate = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
-          return safeDate.toISOString();
-        } catch (e) {
-          return parsed;
-        }
+        return parsed;
       }
     }
   }
@@ -919,7 +1008,10 @@ app.post("/api/backups", (req, res) => {
     statusCode: status === "success" ? "Successfully" : (status === "pending" ? "Pending" : "Failed"),
     status,
     
-    receivedAt: new Date().toISOString(),
+    receivedAt: (() => {
+      const d = new Date();
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    })(),
     subject: subject || `Status de Backup manual para ${serverName}`,
     errorDetails: errorDetails || null,
     parsedWithAI: false,
@@ -1112,11 +1204,12 @@ Para cada job ou servidor encontrado, extraia os seguintes campos:
     const firstValidDateEntry = backupsList.find(b => b.startTime && b.startTime !== "Não detalhado" && b.startTime !== "-") ||
                               backupsList.find(b => b.endTime && b.endTime !== "Não detalhado" && b.endTime !== "-");
     if (firstValidDateEntry) {
-      finalReceivedAt = parseDateStringToIso(firstValidDateEntry.startTime || firstValidDateEntry.endTime);
+      finalReceivedAt = parseDateStringToDDMMYYYY(firstValidDateEntry.startTime || firstValidDateEntry.endTime);
     }
   }
   if (!finalReceivedAt) {
-    finalReceivedAt = new Date().toISOString();
+    const d = new Date();
+    finalReceivedAt = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   }
 
   // Map them into our full DB format
@@ -1174,7 +1267,7 @@ app.post("/api/emails/forward", async (req, res) => {
 
   let receivedAtParam: string | null = null;
   if (dateParam) {
-    receivedAtParam = parseDateStringToIso(dateParam);
+    receivedAtParam = parseDateStringToDDMMYYYY(dateParam);
   }
 
   try {
@@ -1429,10 +1522,16 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
             parsedGemini = JSON.parse(response.text.trim());
           }
           
-          let commonReceivedAt = new Date().toISOString();
-          const firstValidJob = (parsedGemini.backups || []).find((b: any) => b.startTime && b.startTime !== "Não detalhado" && b.startTime !== "-");
-          if (firstValidJob) {
-            commonReceivedAt = parseDateStringToIso(firstValidJob.startTime);
+          let commonReceivedAt = detectedEmailDate;
+          if (!commonReceivedAt) {
+            const firstValidJob = (parsedGemini.backups || []).find((b: any) => b.startTime && b.startTime !== "Não detalhado" && b.startTime !== "-");
+            if (firstValidJob) {
+              commonReceivedAt = parseDateStringToDDMMYYYY(firstValidJob.startTime);
+            }
+          }
+          if (!commonReceivedAt) {
+            const d = new Date();
+            commonReceivedAt = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
           }
 
           const backupsToInsert = (parsedGemini.backups || []).map((entry: any, index: number) => {
@@ -1476,13 +1575,13 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
         } catch (geminiPdfErr) {
           console.error("Gemini PDF parsing failed, utilizing local fallback engine:", geminiPdfErr);
           const pdfData = await pdf(fileBuffer);
-          const result = await parseAndSaveEmailContent(`Relatório PDF: ${fileName}`, pdfData.text || "", fileId);
+          const result = await parseAndSaveEmailContent(`Relatório PDF: ${fileName}`, pdfData.text || "", fileId, detectedEmailDate);
           backupsExtracted = result.newBackups.length;
           backupIds = result.newBackups.map((b: any) => b.id);
         }
       } else {
         const pdfData = await pdf(fileBuffer);
-        const result = await parseAndSaveEmailContent(`Relatório PDF: ${fileName}`, pdfData.text || "", fileId);
+        const result = await parseAndSaveEmailContent(`Relatório PDF: ${fileName}`, pdfData.text || "", fileId, detectedEmailDate);
         backupsExtracted = result.newBackups.length;
         backupIds = result.newBackups.map((b: any) => b.id);
       }
@@ -1500,17 +1599,17 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
         const sub = fileData.subject || `Relatório MSG: ${fileName}`;
         const bod = fileData.body || fileData.html || "";
         
-        let receivedAt: string | null = null;
-        if (fileData.headers) {
+        let receivedAt = detectedEmailDate;
+        if (!receivedAt && fileData.headers) {
           const dateMatch = fileData.headers.match(/^Date:\s*([^\r\n]+)/im);
           if (dateMatch && dateMatch[1]) {
-            try { receivedAt = new Date(dateMatch[1]).toISOString(); } catch (e) {}
+            receivedAt = parseDateStringToDDMMYYYY(dateMatch[1]);
           }
         }
         if (!receivedAt) {
           const rawDate = fileData.clientSubmitTime || fileData.messageDeliveryTime || fileData.creationTime;
           if (rawDate) {
-            try { receivedAt = new Date(rawDate).toISOString(); } catch (e) {}
+            receivedAt = parseDateStringToDDMMYYYY(rawDate);
           }
         }
         
@@ -1524,7 +1623,10 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
           const parsedEml = await simpleParser(fileBuffer);
           const sub = parsedEml.subject || `Relatório EML/MSG: ${fileName}`;
           const bod = parsedEml.text || parsedEml.textAsHtml || parsedEml.html || "";
-          let receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
+          let receivedAt = detectedEmailDate;
+          if (!receivedAt && parsedEml.date) {
+            receivedAt = parseDateStringToDDMMYYYY(parsedEml.date);
+          }
           if (!receivedAt) {
             receivedAt = extractForwardedDate(fileBuffer.toString("utf-8"));
           }
@@ -1536,7 +1638,10 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
           // If EML parsing fails, parse as plain text
           console.error("Failed to parse non-binary MSG as EML, falling back to TXT:", emlErr);
           const text = fileBuffer.toString("utf-8");
-          const receivedAt = extractForwardedDate(text);
+          let receivedAt = detectedEmailDate;
+          if (!receivedAt) {
+            receivedAt = extractForwardedDate(text);
+          }
           const result = await parseAndSaveEmailContent(`Relatório MSG TXT: ${fileName}`, text, fileId, receivedAt);
           backupsExtracted = result.newBackups.length;
           backupIds = result.newBackups.map((b: any) => b.id);
@@ -1546,7 +1651,10 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
       const parsedEml = await simpleParser(fileBuffer);
       const sub = parsedEml.subject || `Relatório EML: ${fileName}`;
       const bod = parsedEml.text || parsedEml.textAsHtml || parsedEml.html || "";
-      let receivedAt = parsedEml.date ? new Date(parsedEml.date).toISOString() : null;
+      let receivedAt = detectedEmailDate;
+      if (!receivedAt && parsedEml.date) {
+        receivedAt = parseDateStringToDDMMYYYY(parsedEml.date);
+      }
       if (!receivedAt) {
         receivedAt = extractForwardedDate(fileBuffer.toString("utf-8"));
       }
@@ -1559,7 +1667,10 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
       const text = fileBuffer.toString("utf-8");
       
       let txtSubject = `Relatório TXT: ${fileName}`;
-      const receivedAt = extractForwardedDate(text);
+      let receivedAt = detectedEmailDate;
+      if (!receivedAt) {
+        receivedAt = extractForwardedDate(text);
+      }
       
       // Look for Subject and Date headers in the first 30 lines of the TXT file
       const lines = text.split(/\r?\n/).slice(0, 30);

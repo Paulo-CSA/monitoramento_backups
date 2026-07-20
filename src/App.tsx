@@ -39,6 +39,58 @@ export default function App() {
   const [backups, setBackups] = useState<BackupRecord[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
+
+  // Safe Date formatters supporting both ISO format and DD/MM/YYYY format
+  const formatReceivedAtDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      return dateStr;
+    }
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+    } catch (e) {}
+    return dateStr;
+  };
+
+  const formatReceivedAtDateTime = (dateStr: string) => {
+    if (!dateStr) return "";
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      return dateStr;
+    }
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleString("pt-BR");
+      }
+    } catch (e) {}
+    return dateStr;
+  };
+
+  const formatUploadedAtDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      return dateStr;
+    }
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      }
+    } catch (e) {}
+    return dateStr;
+  };
   
   // Filtering and searching
   const [searchQuery, setSearchQuery] = useState("");
@@ -400,8 +452,19 @@ export default function App() {
   
   const successRate = totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100;
 
-  // Extract all unique dates for filters (YYYY-MM-DD)
-  const uniqueDates: string[] = Array.from(new Set(veritasBackups.map((b) => b.receivedAt ? b.receivedAt.substring(0, 10) : ""))).filter(Boolean).sort().reverse() as string[];
+  // Extract all unique dates for filters (DD/MM/YYYY)
+  const uniqueDates: string[] = (Array.from(
+    new Set(veritasBackups.map((b) => b.receivedAt ? formatReceivedAtDate(b.receivedAt) : ""))
+  ).filter(Boolean) as string[]).sort((a: string, b: string) => {
+    const parseDDMMYYYY = (s: string) => {
+      const parts = s.split("/");
+      if (parts.length === 3) {
+        return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)).getTime();
+      }
+      return 0;
+    };
+    return parseDDMMYYYY(b) - parseDDMMYYYY(a);
+  });
 
   // Filtered Backups
   const filteredBackups = veritasBackups.filter((b) => {
@@ -417,7 +480,7 @@ export default function App() {
     
     const matchesStatus = statusFilter === "all" || b.status === statusFilter;
     
-    const bDate = b.receivedAt ? b.receivedAt.substring(0, 10) : "";
+    const bDate = b.receivedAt ? formatReceivedAtDate(b.receivedAt) : "";
     const matchesDate = dateFilter === "all" || bDate === dateFilter;
     
     const matchesFile = !selectedFileId || b.uploadFileId === selectedFileId;
@@ -817,13 +880,7 @@ export default function App() {
                 ) : (
                   uploads.map((file) => {
                     const sizeInKB = (file.fileSize / 1024).toFixed(1);
-                    const formattedDate = new Date(file.uploadedAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    });
+                    const formattedDate = formatUploadedAtDate(file.uploadedAt);
                     return (
                       <div
                         key={file.id}
@@ -1056,15 +1113,11 @@ export default function App() {
                     className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/35 cursor-pointer text-slate-300 font-mono"
                   >
                     <option value="all">Todas as Datas</option>
-                    {uniqueDates.map((d) => {
-                      const parts = d.split("-");
-                      const formatted = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
-                      return (
-                        <option key={d} value={d}>
-                          {formatted}
-                        </option>
-                      );
-                    })}
+                    {uniqueDates.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1183,7 +1236,7 @@ export default function App() {
                                       </div>
                                       <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl text-xs">
                                         <span className="text-slate-500 block text-[10px] uppercase font-mono">Recebido por E-mail:</span>
-                                        <span className="text-slate-300 font-mono block mt-0.5 text-[11px]">{new Date(backup.receivedAt).toLocaleString("pt-BR")}</span>
+                                        <span className="text-slate-300 font-mono block mt-0.5 text-[11px]">{formatReceivedAtDateTime(backup.receivedAt)}</span>
                                       </div>
                                       <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl text-xs">
                                         <span className="text-slate-500 block text-[10px] uppercase font-mono">Classificação:</span>
@@ -1305,7 +1358,7 @@ export default function App() {
                             <div className="flex justify-between items-center text-xs border-t border-slate-800/60 pt-3">
                               <span className="font-mono bg-slate-950 text-slate-300 px-2 py-0.5 rounded border border-slate-800/50">{jobSize}</span>
                               <span className="text-slate-400 font-mono text-[10px]">{duration}</span>
-                              <span className="text-[9px] text-slate-500 font-mono">{new Date(backup.receivedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                              <span className="text-[9px] text-slate-500 font-mono">{formatReceivedAtDateTime(backup.receivedAt)}</span>
                             </div>
                           </div>
 
