@@ -995,7 +995,7 @@ app.post("/api/backups", (req, res) => {
   }
 
   const newBackup = {
-    id: Date.now().toString(),
+    id: `bk-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
     clientName: serverName,
     policyName: systemType || "Backup Geral",
     startTime: new Date().toISOString(),
@@ -1221,7 +1221,7 @@ Para cada job ou servidor encontrado, extraia os seguintes campos:
     const statusVal = entry.status || "success";
 
     return {
-      id: (Date.now() + index + Math.floor(Math.random() * 1000)).toString(),
+      id: `bk-${Date.now()}-${index}-${Math.floor(Math.random() * 1000000)}`,
       clientName: cName,
       policyName: pName,
       startTime: entry.startTime || "Não detalhado",
@@ -1542,7 +1542,7 @@ Retorne um objeto JSON contendo um array de backups com as seguintes propriedade
             const statusVal = entry.status || "success";
             
             return {
-              id: (Date.now() + index + Math.floor(Math.random() * 1000)).toString(),
+              id: `bk-${Date.now()}-${index}-${Math.floor(Math.random() * 1000000)}`,
               clientName: cName,
               policyName: pName,
               startTime: entry.startTime || "Não detalhado",
