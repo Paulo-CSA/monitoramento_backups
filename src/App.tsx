@@ -472,8 +472,12 @@ export default function App() {
   });
   const newestFile = sortedUploadsByDate.length > 0 ? sortedUploadsByDate[0] : null;
 
-  // Active file is selectedFileId, or if nothing is selected, the newestFile (if any uploads exist)
-  const activeFileId = selectedFileId || (newestFile ? newestFile.id : null);
+  // Active file is selectedFileId. If no file is explicitly selected:
+  // - If the user is searching (searchQuery is set) or filtering by a specific date, we search across ALL uploaded log files to find any historical matches.
+  // - Otherwise, we default to the newest file to keep the initial dashboard view clean and focused on the latest status.
+  const activeFileId = selectedFileId 
+    ? selectedFileId 
+    : (searchQuery.trim() !== "" || dateFilter !== "all" ? null : (newestFile ? newestFile.id : null));
 
   const veritasBackups = activeFileId
     ? veritasBackupsAll.filter((b) => b.uploadFileId === activeFileId)
@@ -919,13 +923,13 @@ export default function App() {
                         key={file.id}
                         onClick={() => setSelectedFileId(selectedFileId === file.id ? null : file.id)}
                         className={`border rounded-xl p-2 transition group flex flex-col gap-1 cursor-pointer select-none ${
-                          selectedFileId === file.id || (selectedFileId === null && newestFile?.id === file.id)
+                          selectedFileId === file.id || (selectedFileId === null && activeFileId === file.id)
                             ? "border-indigo-500 bg-indigo-950/80 shadow-[0_0_12px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/30 text-indigo-100"
                             : "bg-slate-950/60 hover:bg-slate-950 border-slate-850 hover:border-slate-800 text-slate-300"
                         }`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <FileText className={`h-3.5 w-3.5 shrink-0 ${selectedFileId === file.id || (selectedFileId === null && newestFile?.id === file.id) ? "text-indigo-400" : "text-slate-400"}`} />
+                          <FileText className={`h-3.5 w-3.5 shrink-0 ${selectedFileId === file.id || (selectedFileId === null && activeFileId === file.id) ? "text-indigo-400" : "text-slate-400"}`} />
                           <span className="text-[11px] font-mono font-medium truncate select-all flex-1 text-left" title={file.fileName}>
                             {file.fileName}
                           </span>
@@ -935,7 +939,7 @@ export default function App() {
                         </div>
                         
                         <div className="text-[8.5px] text-slate-500 font-mono flex items-center gap-1">
-                          <Clock className={`h-2.5 w-2.5 shrink-0 ${(selectedFileId === file.id || (selectedFileId === null && newestFile?.id === file.id)) ? "text-indigo-400" : "text-indigo-500/75 animate-pulse"}`} />
+                          <Clock className={`h-2.5 w-2.5 shrink-0 ${(selectedFileId === file.id || (selectedFileId === null && activeFileId === file.id)) ? "text-indigo-400" : "text-indigo-500/75 animate-pulse"}`} />
                           <span>Recebido em: {formattedDate}</span>
                         </div>
 
@@ -1004,6 +1008,10 @@ export default function App() {
                     >
                       ×
                     </button>
+                  </div>
+                ) : activeFileId === null && (searchQuery.trim() !== "" || dateFilter !== "all") ? (
+                  <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono mt-1 sm:mt-0 max-w-full sm:max-w-xs animate-pulse">
+                    <span className="truncate">Pesquisando em Todo o Histórico de Logs</span>
                   </div>
                 ) : newestFile ? (
                   <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono mt-1 sm:mt-0 max-w-full sm:max-w-xs">
