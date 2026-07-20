@@ -630,20 +630,44 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Legends with detailed colored badges */}
+              {/* Legends with detailed colored badges - Interactive Filter Buttons */}
               <div className="flex flex-wrap items-center justify-center gap-2.5 w-full border-t border-slate-800/60 pt-3 text-[10px]">
-                <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/15 px-2.5 py-0.5 rounded-full text-emerald-400">
+                <button
+                  onClick={() => setStatusFilter(statusFilter === "success" ? "all" : "success")}
+                  className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] transition cursor-pointer font-bold border ${
+                    statusFilter === "success"
+                      ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300 ring-1 ring-emerald-500/20"
+                      : "bg-emerald-500/10 border-emerald-500/15 text-emerald-400 hover:bg-emerald-500/20"
+                  }`}
+                  title="Filtrar por Sucesso"
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span className="font-mono font-bold">{successCount} OK</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/15 px-2.5 py-0.5 rounded-full text-rose-400">
+                  <span className="font-mono">{successCount} OK</span>
+                </button>
+                <button
+                  onClick={() => setStatusFilter(statusFilter === "failure" ? "all" : "failure")}
+                  className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] transition cursor-pointer font-bold border ${
+                    statusFilter === "failure"
+                      ? "bg-rose-500/25 border-rose-500/40 text-rose-300 ring-1 ring-rose-500/20"
+                      : "bg-rose-500/10 border-rose-500/15 text-rose-400 hover:bg-rose-500/20"
+                  }`}
+                  title="Filtrar por Erros"
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                  <span className="font-mono font-bold">{failureCount} Erros</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/15 px-2.5 py-0.5 rounded-full text-amber-400">
+                  <span className="font-mono">{failureCount} Erros</span>
+                </button>
+                <button
+                  onClick={() => setStatusFilter(statusFilter === "pending" ? "all" : "pending")}
+                  className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] transition cursor-pointer font-bold border ${
+                    statusFilter === "pending"
+                      ? "bg-amber-500/25 border-amber-500/40 text-amber-300 ring-1 ring-amber-500/20"
+                      : "bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-amber-500/20"
+                  }`}
+                  title="Filtrar por Pendentes"
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span className="font-mono font-bold">{pendingCount} Pend.</span>
-                </div>
+                  <span className="font-mono">{pendingCount} Pend.</span>
+                </button>
               </div>
             </div>
 
@@ -714,12 +738,16 @@ export default function App() {
 
             {/* Failure Card */}
             <div 
-              onClick={() => setStatusFilter("failure")}
-              className={`p-4 rounded-2xl border transition cursor-pointer hover:bg-rose-500/15 ${statusFilter === "failure" ? "bg-rose-950/40 border-rose-500/50" : "bg-rose-500/10 border-rose-500/20"}`}
+              onClick={() => setStatusFilter(statusFilter === "failure" ? "all" : "failure")}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+                statusFilter === "failure" 
+                  ? "bg-slate-800 border-rose-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]" 
+                  : "bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850"
+              }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold text-rose-500 tracking-wider">Falhas Críticas</span>
-                <div className="w-7 h-7 rounded-full bg-rose-500/20 flex items-center justify-center">
+                <span className={`text-[10px] uppercase font-bold tracking-wider ${statusFilter === "failure" ? "text-rose-400" : "text-slate-400"}`}>Falhas Críticas</span>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${statusFilter === "failure" ? "bg-rose-500/30" : "bg-rose-500/10"}`}>
                   <XCircle className="h-4 w-4 text-rose-500" />
                 </div>
               </div>
@@ -733,12 +761,16 @@ export default function App() {
 
             {/* Pending Card */}
             <div 
-              onClick={() => setStatusFilter("pending")}
-              className={`p-4 rounded-2xl border transition cursor-pointer hover:bg-amber-500/15 ${statusFilter === "pending" ? "bg-amber-950/40 border-amber-500/50" : "bg-amber-500/10 border-amber-500/20"}`}
+              onClick={() => setStatusFilter(statusFilter === "pending" ? "all" : "pending")}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+                statusFilter === "pending" 
+                  ? "bg-slate-800 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]" 
+                  : "bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850"
+              }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">Pendentes</span>
-                <div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <span className={`text-[10px] uppercase font-bold tracking-wider ${statusFilter === "pending" ? "text-amber-400" : "text-slate-400"}`}>Pendentes</span>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${statusFilter === "pending" ? "bg-amber-500/30" : "bg-amber-500/10"}`}>
                   <Clock className="h-4 w-4 text-amber-500 animate-spin-slow" />
                 </div>
               </div>
@@ -1092,7 +1124,10 @@ export default function App() {
                 <div className="relative w-full">
                   <select
                     value={statusFilter}
-                    onChange={(e) => setSearchQuery("") || setStatusFilter(e.target.value as any)}
+                    onChange={(e) => {
+                      setSearchQuery("");
+                      setStatusFilter(e.target.value as any);
+                    }}
                     className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/35 cursor-pointer"
                   >
                     <option value="all">Todos os Estados ({totalCount})</option>
