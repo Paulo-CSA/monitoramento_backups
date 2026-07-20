@@ -437,12 +437,38 @@ export default function App() {
     setTimeout(() => setCopiedCurl(false), 3000);
   };
 
+  // Helper to parse dates safely supporting both DD/MM/YYYY and ISO strings
+  const safeParseDate = (dateStr: string): number => {
+    if (!dateStr) return 0;
+    // Check if it's DD/MM/YYYY format
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      const parts = dateStr.split("/");
+      return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)).getTime();
+    }
+    // Check if it has time as well: "DD/MM/YYYY HH:MM:SS" or "DD/MM/YYYY, HH:MM"
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(dateStr)) {
+      const mainPart = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      if (mainPart) {
+        const [, d, m, y] = mainPart;
+        // Check for time
+        const timePart = dateStr.match(/(\d{2}):(\d{2})/);
+        if (timePart) {
+          const [, hr, min] = timePart;
+          return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10), parseInt(hr, 10), parseInt(min, 10)).getTime();
+        }
+        return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10)).getTime();
+      }
+    }
+    const t = Date.parse(dateStr);
+    return isNaN(t) ? 0 : t;
+  };
+
   // Filter out any backups that are not Veritas NetBackup to ensure all metrics/views use only Veritas NetBackup logs
   const veritasBackupsAll = backups.filter((b) => (b.systemType || "").toLowerCase().includes("veritas") || (b.policyName || "").toLowerCase().includes("inema"));
   
   // Sort uploads to get the most recent/latest uploaded file
   const sortedUploadsByDate = [...uploads].sort((a, b) => {
-    return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+    return safeParseDate(b.uploadedAt) - safeParseDate(a.uploadedAt);
   });
   const newestFile = sortedUploadsByDate.length > 0 ? sortedUploadsByDate[0] : null;
 
@@ -465,14 +491,7 @@ export default function App() {
   const uniqueDates: string[] = (Array.from(
     new Set(veritasBackups.map((b) => b.receivedAt ? formatReceivedAtDate(b.receivedAt) : ""))
   ).filter(Boolean) as string[]).sort((a: string, b: string) => {
-    const parseDDMMYYYY = (s: string) => {
-      const parts = s.split("/");
-      if (parts.length === 3) {
-        return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)).getTime();
-      }
-      return 0;
-    };
-    return parseDDMMYYYY(b) - parseDDMMYYYY(a);
+    return safeParseDate(b) - safeParseDate(a);
   });
 
   // Filtered Backups
@@ -669,8 +688,12 @@ export default function App() {
             
             {/* Total Active Backups Card */}
             <div 
-              onClick={() => setStatusFilter("all")}
-              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "all" ? "bg-slate-800 border-indigo-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchQuery("");
+                setStatusFilter("all");
+              }}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "all" ? "bg-slate-800 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)]" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sistemas Ativos</span>
@@ -686,8 +709,12 @@ export default function App() {
 
             {/* Success Card with Bento Mini Bar Chart */}
             <div 
-              onClick={() => setStatusFilter("success")}
-              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "success" ? "bg-slate-800 border-emerald-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchQuery("");
+                setStatusFilter(statusFilter === "success" ? "all" : "success");
+              }}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${statusFilter === "success" ? "bg-slate-800 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -712,7 +739,11 @@ export default function App() {
 
             {/* Failure Card */}
             <div 
-              onClick={() => setStatusFilter(statusFilter === "failure" ? "all" : "failure")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchQuery("");
+                setStatusFilter(statusFilter === "failure" ? "all" : "failure");
+              }}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
                 statusFilter === "failure" 
                   ? "bg-slate-800 border-rose-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]" 
@@ -735,7 +766,11 @@ export default function App() {
 
             {/* Pending Card */}
             <div 
-              onClick={() => setStatusFilter(statusFilter === "pending" ? "all" : "pending")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchQuery("");
+                setStatusFilter(statusFilter === "pending" ? "all" : "pending");
+              }}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
                 statusFilter === "pending" 
                   ? "bg-slate-800 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]" 
@@ -892,13 +927,13 @@ export default function App() {
                         key={file.id}
                         onClick={() => setSelectedFileId(selectedFileId === file.id ? null : file.id)}
                         className={`border rounded-xl p-2 transition group flex flex-col gap-1 cursor-pointer select-none ${
-                          selectedFileId === file.id
+                          selectedFileId === file.id || (selectedFileId === null && newestFile?.id === file.id)
                             ? "border-indigo-500 bg-indigo-950/80 shadow-[0_0_12px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/30 text-indigo-100"
                             : "bg-slate-950/60 hover:bg-slate-950 border-slate-850 hover:border-slate-800 text-slate-300"
                         }`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <FileText className={`h-3.5 w-3.5 shrink-0 ${selectedFileId === file.id ? "text-indigo-400" : "text-slate-400"}`} />
+                          <FileText className={`h-3.5 w-3.5 shrink-0 ${selectedFileId === file.id || (selectedFileId === null && newestFile?.id === file.id) ? "text-indigo-400" : "text-slate-400"}`} />
                           <span className="text-[11px] font-mono font-medium truncate select-all flex-1 text-left" title={file.fileName}>
                             {file.fileName}
                           </span>
@@ -908,7 +943,7 @@ export default function App() {
                         </div>
                         
                         <div className="text-[8.5px] text-slate-500 font-mono flex items-center gap-1">
-                          <Clock className={`h-2.5 w-2.5 shrink-0 ${selectedFileId === file.id ? "text-indigo-400" : "text-indigo-500/75 animate-pulse"}`} />
+                          <Clock className={`h-2.5 w-2.5 shrink-0 ${(selectedFileId === file.id || (selectedFileId === null && newestFile?.id === file.id)) ? "text-indigo-400" : "text-indigo-500/75 animate-pulse"}`} />
                           <span>Recebido em: {formattedDate}</span>
                         </div>
 
