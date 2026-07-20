@@ -472,22 +472,44 @@ export default function App() {
   });
   const newestFile = sortedUploadsByDate.length > 0 ? sortedUploadsByDate[0] : null;
 
-  // Active file is selectedFileId. If no file is explicitly selected:
+  // Active file is selectedFileId. If the user is searching or filtering by date, we bypass selectedFileId to search across ALL files/dates.
   // - If the user is searching (searchQuery is set) or filtering by a specific date, we search across ALL uploaded log files to find any historical matches.
-  // - Otherwise, we default to the newest file to keep the initial dashboard view clean and focused on the latest status.
-  const activeFileId = selectedFileId 
-    ? selectedFileId 
-    : (searchQuery.trim() !== "" || dateFilter !== "all" ? null : (newestFile ? newestFile.id : null));
+  // - Otherwise, we default to selectedFileId (if set), or the newestFile (if any uploads exist) to keep the initial dashboard view clean and focused on the latest status.
+  const activeFileId = (searchQuery.trim() !== "" || dateFilter !== "all")
+    ? null
+    : (selectedFileId || (newestFile ? newestFile.id : null));
 
-  const veritasBackups = activeFileId
-    ? veritasBackupsAll.filter((b) => b.uploadFileId === activeFileId)
-    : veritasBackupsAll;
+  // Base filtered backups includes search query, date filter, and active log file, but does NOT include status filter.
+  // This allows us to calculate correct metrics (Total, Success, Failure, Pending) for the searched server/period.
+  const baseFilteredBackups = veritasBackupsAll.filter((b) => {
+    // 1. Filter by active file (only if no search query or date filter is active)
+    const matchesFile = !activeFileId || b.uploadFileId === activeFileId;
+    if (!matchesFile) return false;
 
-  // Calculate stats
-  const totalCount = veritasBackups.length;
-  const successCount = veritasBackups.filter((b) => b.status === "success").length;
-  const failureCount = veritasBackups.filter((b) => b.status === "failure").length;
-  const pendingCount = veritasBackups.filter((b) => b.status === "pending").length;
+    // 2. Filter by search query (Client Name or Policy Name)
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      const cName = (b.clientName || b.serverName || "").toLowerCase();
+      const pName = (b.policyName || b.systemType || "").toLowerCase();
+      if (!cName.includes(query) && !pName.includes(query)) {
+        return false;
+      }
+    }
+
+    // 3. Filter by date
+    if (dateFilter !== "all") {
+      const bDate = b.receivedAt ? formatReceivedAtDate(b.receivedAt) : "";
+      if (bDate !== dateFilter) return false;
+    }
+
+    return true;
+  });
+
+  // Calculate stats based on baseFilteredBackups (reflects searched server and period!)
+  const totalCount = baseFilteredBackups.length;
+  const successCount = baseFilteredBackups.filter((b) => b.status === "success").length;
+  const failureCount = baseFilteredBackups.filter((b) => b.status === "failure").length;
+  const pendingCount = baseFilteredBackups.filter((b) => b.status === "pending").length;
   
   const successRate = totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100;
 
@@ -498,26 +520,13 @@ export default function App() {
     return safeParseDate(b) - safeParseDate(a);
   });
 
-  // Filtered Backups
-  const filteredBackups = veritasBackups.filter((b) => {
-    const cName = (b.clientName || b.serverName || "").toLowerCase();
-    const pName = (b.policyName || b.systemType || "").toLowerCase();
-    const query = searchQuery.trim().toLowerCase();
-
-    const matchesSearch = !query || cName.includes(query) || pName.includes(query);
-    
-    const matchesStatus = statusFilter === "all" || b.status === statusFilter;
-    
-    const bDate = b.receivedAt ? formatReceivedAtDate(b.receivedAt) : "";
-    const matchesDate = dateFilter === "all" || bDate === dateFilter;
-    
-    const matchesFile = !activeFileId || b.uploadFileId === activeFileId;
-
-    return matchesSearch && matchesStatus && matchesDate && matchesFile;
+  // Final filtered list of backups to display in the grid (applies the status filter)
+  const filteredBackups = baseFilteredBackups.filter((b) => {
+    return statusFilter === "all" || b.status === statusFilter;
   });
 
-  // Calculate volume per technology (in GBs, roughly approximated for visual rendering)
-  const systemVolumes = veritasBackups.reduce((acc: Record<string, number>, b) => {
+  // Calculate volume per technology using baseFilteredBackups (in GBs, roughly approximated for visual rendering)
+  const systemVolumes = baseFilteredBackups.reduce((acc: Record<string, number>, b) => {
     const sizeStr = b.jobSize || b.size;
     if (!sizeStr || b.status !== "success") return acc;
     // Parse size string (e.g. "45.2 GB" -> 45.2, "1.2 TB" -> 1200, "850 MB" -> 0.85)
