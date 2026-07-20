@@ -28,6 +28,17 @@ const PORT = 3000;
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// Prevent caching for all API responses
+app.use("/api", (req, res, next) => {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    "Surrogate-Control": "no-store"
+  });
+  next();
+});
+
 // Seed data
 const defaultBackups = [
   {
@@ -1065,6 +1076,29 @@ app.delete("/api/backups/:id", (req, res) => {
 app.post("/api/backups/reset", (req, res) => {
   saveBackups(defaultBackups);
   res.json(defaultBackups);
+});
+
+// Completely clear all backups and uploads (wipe out database)
+app.post("/api/backups/clear-all", (req, res) => {
+  try {
+    // 1. Delete physical files
+    if (fs.existsSync(UPLOADS_DIR_PATH)) {
+      const files = fs.readdirSync(UPLOADS_DIR_PATH);
+      for (const file of files) {
+        try {
+          fs.unlinkSync(path.join(UPLOADS_DIR_PATH, file));
+        } catch (err) {
+          console.error("Error deleting file:", file, err);
+        }
+      }
+    }
+    // 2. Clear json files
+    saveUploads([]);
+    saveBackups([]);
+    res.json({ success: true, message: "Todos os registros e arquivos foram apagados permanentemente." });
+  } catch (err: any) {
+    res.status(500).json({ error: "Erro ao limpar dados: " + err.message });
+  }
 });
 
 // Get email templates for frontend dropdown simulation

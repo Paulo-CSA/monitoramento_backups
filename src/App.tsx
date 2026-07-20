@@ -134,7 +134,7 @@ export default function App() {
   // Load initial uploads
   const loadUploads = async () => {
     try {
-      const res = await fetch("/api/uploads");
+      const res = await fetch(`/api/uploads?t=${Date.now()}`);
       const data = await res.json();
       setUploads(data);
     } catch (err) {
@@ -259,15 +259,42 @@ export default function App() {
     }
   };
 
+  // Completely wipe all database records and physical files to a blank state
+  const handleWipeAll = async () => {
+    if (!window.confirm("ATENÇÃO! Isso excluirá PERMANENTEMENTE todos os arquivos de logs importados e TODOS os registros de backups do histórico (o sistema ficará totalmente vazio). Deseja continuar?")) {
+      return;
+    }
+    try {
+      setIsRefreshing(true);
+      const res = await fetch(`/api/backups/clear-all?t=${Date.now()}`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        setSelectedFileId(null);
+        setBackups([]);
+        setUploads([]);
+        alert("Todos os dados foram apagados com sucesso! O painel está limpo.");
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Erro ao apagar dados.");
+      }
+    } catch (err: any) {
+      console.error("Erro ao limpar dados:", err);
+      alert("Erro ao limpar dados: " + err.message);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Load initial data
   const loadData = async (quiet = false) => {
     if (!quiet) setIsRefreshing(true);
     try {
-      const bRes = await fetch("/api/backups");
+      const bRes = await fetch(`/api/backups?t=${Date.now()}`);
       const bData = await bRes.json();
       setBackups(bData);
 
-      const tRes = await fetch("/api/emails/templates");
+      const tRes = await fetch(`/api/emails/templates?t=${Date.now()}`);
       const tData = await tRes.json();
       setTemplates(tData);
     } catch (err) {
@@ -573,7 +600,16 @@ export default function App() {
             </div>
           </div>
 
-
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleWipeAll}
+              className="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/50 text-rose-400 border border-rose-900/30 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer hover:scale-[1.01] active:scale-[0.99] shadow-md shadow-rose-950/20"
+              title="Apagar permanentemente todos os relatórios e registros de backup"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Limpar Sistema (Zerar)</span>
+            </button>
+          </div>
           
         </div>
       </header>
